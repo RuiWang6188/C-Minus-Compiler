@@ -18,7 +18,7 @@ typedef struct SYNTAXTREE{
     bool is_nonterminal;    // 1 for nonterminal, 0 for terminal    
 }SyntaxTree;
 
-SyntaxTree* create_ast(char* name, char* s, int is_nonterminal);
+SyntaxTree* create_ast(char* name, char* s, bool is_nonterminal);
 
 void add_ast_node(int child_num, SyntaxTree* node, ...);
 
