@@ -1,0 +1,22 @@
+#ifndef _ERROR_H_
+#define _ERROR_H_
+
+#define OTHERS 0
+#define UNDEFINED_VAR 1
+#define UNDEFINED_FUN 2
+#define REDEFINED_VAR 3
+#define REDEFINED_FUN 4
+#define MISMATCHED_TYPE_ASSIGNOP 5
+#define MISMATCHED_TYPE_OP 6
+#define MISMATCHED_TYPE_RETURN 7
+#define MISMATCHED_TYPE_PARAMETER 8
+#define NONARRAY_VAR_USE_BRACKETS 9
+#define VAR_USE_PARENTHESES 10
+#define NONSTRUCT_VAR_USE_DOT 11
+#define ACCESS_UNDEFINED_FIELDS_IN_STRUCT 12
+#define REDEFINED_FIELDS_IN_STRUCT 13
+#define INIT_FIELDS_IN_STRUCT 14
+
+void print_error(char *name, int line, int error_num);
+
+#endif

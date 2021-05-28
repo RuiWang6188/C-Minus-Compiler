@@ -96,7 +96,7 @@ RETURN return
 }
 
 {INT} {
-    yylval.type_tre = create("INT", yytext, 0);
+    yylval.type_tree = create("INT", yytext, 0);
     return INT;
 }
 

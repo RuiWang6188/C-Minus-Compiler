@@ -22,6 +22,8 @@ void add_ast_node(int child_num, SyntaxTree* node, ...);
 
 void print_ast(SyntaxTree* root, int count);
 
+void trace_tree(SyntaxTree* node);
+
 SyntaxTree* ROOT;
 
 #endif // _AST_H_

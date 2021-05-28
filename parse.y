@@ -51,20 +51,27 @@
 
 %%
 Program: 
-    ExtDefList {}
+    ExtDefList {
+        $$ = create("Program", 0, 0);
+        traceTree($$); 
+    }
     ;
 ExtDefList: 
-    ExtDef ExtDefList {}
-    | {}
+    ExtDef ExtDefList {
+        $$ = create("ExtDefList", 0, 0);
+    }
+    | {
+        $$ = create(0, 0, 0);
+      }
     ;
 ExtDef: 
     Specifier ExtDefList SEMI {}
     | Specifier SEMI {}
     | Specifier FunDec CompSt {}
     ;
-ExtDefList:
+ExtDecList:
     VarDec {}
-    | VarDec COMMA ExtDefList {}
+    | VarDec COMMA ExtDecList {}
     ;
 Specifier:
     TYPE {}

@@ -60,3 +60,12 @@ void print_ast(SyntaxTree* root, int count)
             print_ast(root->child_ast[i],count+1);
     }
 }
+
+void trace_tree(SyntaxTree* node) {
+    if (strcmp(node->name, "FunDec") == 0) {
+
+    } 
+    else if (strcmp(node->name, "IF")) {
+
+    }
+}
