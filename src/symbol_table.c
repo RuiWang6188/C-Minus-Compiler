@@ -10,9 +10,11 @@ void init_domain_stack(int size) {
     domainstack->domain[0] = temp;
     domainstack->index = 0;
 }
+
 char * get_current_domain() {
     return domainstack->domain[domainstack->index];
 }
+
 void entry_domain(char * domain) {
     char **temp;
     char *temp_domain = (char *)malloc(sizeof(char) * (strlen(domain) + 1));
@@ -25,6 +27,7 @@ void entry_domain(char * domain) {
     strcpy(temp_domain, domain);
     domainstack->domain[domainstack->index] = temp_domain;
 }
+
 void exit_domain() {
     free(domainstack->domain[domainstack->index --]);
 }
@@ -50,8 +53,10 @@ int insert_symbol(char *name, int type, arg* args) {
         sym->domain = GLOBAL;
         hash = BKDRHash(sym->name);
     } else {
-        sym->domain = get_current_domain();
-        char *temp = (char *)malloc(sizeof(char) * (strlen(sym->domain) + 1 + strlen(sym->name) + 1));
+        char *temp = get_current_domain();
+        sym->domain = (char *)malloc(sizeof(char) * (strlen(temp) + 1));
+        strcpy(sym->domain, temp);
+        temp = (char *)malloc(sizeof(char) * (strlen(sym->domain) + 1 + strlen(sym->name) + 1));
         strcat(temp, sym->domain);
         strcat(temp, ".");
         strcat(temp, sym->name);

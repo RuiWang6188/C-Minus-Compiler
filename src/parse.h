@@ -5,9 +5,9 @@
 #define IF "IF"
 #define WHILE "WHILE"
 #define RETURN "RETURN"
-#define FunDec "FunDec"
-#define VarDec "VarDec"
-#define Exp "Exp"
+#define FUNDEC "FunDec"
+#define VARDEC "VarDec"
+#define EXP "Exp"
 
 #define LABEL "label"
 #define CMP "cmp"

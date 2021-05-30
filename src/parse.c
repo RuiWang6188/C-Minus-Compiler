@@ -14,10 +14,10 @@ void ir_bulid_fundec(SyntaxTree *node) {
 }
 
 void traverse_ast(SyntaxTree *node) {
-    if (strcmp(node->name, FunDec) == 0) {
+    if (strcmp(node->name, FUNDEC) == 0) {
 
     }
-    else if (strcmp(node->name, VarDec) == 0) {
+    else if (strcmp(node->name, VARDEC) == 0) {
 
     }
     else if (strcmp(node->name, IF) == 0) {
@@ -29,7 +29,7 @@ void traverse_ast(SyntaxTree *node) {
     else if (strcmp(node->name, RETURN) == 0) {
 
     }
-    else if (strcmp(node->name, Exp) == 0) {
+    else if (strcmp(node->name, EXP) == 0) {
 
     }
 } 
