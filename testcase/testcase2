@@ -1,0 +1,10 @@
+int main(){
+	float array[10][2];
+	int i;
+	array[5,3] = 1.5;
+	if(array[1][2] == 0){
+        i = 1 
+    }
+    else 
+        i = 0; 
+}
