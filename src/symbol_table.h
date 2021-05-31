@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "error.h"
+#include "ast.h"
 
 #define FUN 1
 #define VAR 2
@@ -13,7 +14,8 @@
 #define FLOAT 7 
 // use even to identify arrays
 #define INT_ARRAY 6
-#define FLOAT_ARRAY 8 
+#define FLOAT_ARRAY 8
+// Larger numbers are reserved for struct
 
 #define GLOBAL "global"
 
@@ -27,6 +29,7 @@ typedef struct _symbol {
     char *name;
     char *domain;
     int type;
+    int return_type;
     struct _arg *args;
 } symbol;
 
@@ -60,16 +63,21 @@ unsigned int BKDRHash(char *str);
 void init_hash_table(hash_node * hash_table[], int size);
 void free_hash_node(hash_node * node);
 void free_hashtable(hash_node * hash_table[], int size);
-hash_node * insert_hash(hash_node * hash_table[], int size, int hashvalue, symbol* sym);
+int insert_hash(hash_node * hash_table[], int size, int hashvalue, symbol* sym);
 hash_node * lookup_hash(hash_node * hash_table[], int size, int hashvalue);
 
 void init_symbol_table(int size);
 void clear_symbol_table();
-int insert_symbol(char *name, int type, arg* args);
+int insert_symbol(char *name, int type, arg* args, int return_type);
+// -1 is not found, other num is type of the var / fun;
 int lookup(char *name, int type);
+arg * get_args(SyntaxTree* node);
+char *get_name(SyntaxTree* node);
+int get_type(SyntaxTree* node);
+int get_return_type(SyntaxTree* node);
 
-
-
+char *append_domain(char *name, char *domain);
+int get_struct_num();
 
 
 #endif
