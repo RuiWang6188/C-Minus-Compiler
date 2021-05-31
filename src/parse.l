@@ -136,7 +136,7 @@ TAB \t|" "
 
 .   {
         mistake++;
-        printf("Error Occurs at Line %d: Unknown characters\n", yylineno);
+        printf("Error Occurs at Line %d: Unknown characters \'%s\'\n", yylineno, yytext);
     }
 
 %%

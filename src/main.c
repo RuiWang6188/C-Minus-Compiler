@@ -15,7 +15,7 @@ int main(int argc,char** argv)
         perror(argv[1]);
         return 1;
     }
-    yyrestart(f);
+    yyrestart(f); //在每次parse之前调用yyrestart()来确保lex从头开始分析而不是从上次的地方继续分析
     //yydebug=1;
     yyparse();
     if(mistake==0)
