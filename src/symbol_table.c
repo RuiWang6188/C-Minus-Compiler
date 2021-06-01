@@ -93,7 +93,10 @@ arg* get_member_list(SyntaxTree *node, int type, arg* tail) {
                     tail->next = temp_arg;
                     tail = tail->next;
                 }
-                insert_symbol(temp_arg->name, temp_arg->type, NULL, -1);
+                int flag = insert_symbol(temp_arg->name, temp_arg->type, NULL, -1);
+                if (flag == 0) {
+                    print_error(node->child_ast[1]->child_ast[0]->text, 0, REDEFINED_FIELDS_IN_STRUCT);
+                }
             } 
             else if (strcmp(node->child_ast[i]->name, "FunDec") == 0) {
                 //no fun in struct
@@ -125,7 +128,10 @@ int get_type(SyntaxTree* node) {
         if (node->child_num == 5) {
             int struct_type = get_struct_num();
             arg* temp = get_member_list(node->child_ast[3], -1, NULL);
-            insert_symbol(node->child_ast[1]->child_ast[0]->text, struct_type, temp, -1);
+            int flag = insert_symbol(node->child_ast[1]->child_ast[0]->text, struct_type, temp, -1);
+            if (flag == 0) {
+                print_error(node->child_ast[1]->child_ast[0]->text, 0, REDEFINED_VAR);
+            }
             return struct_type;
         } 
         // StructSpecifier --> STRUCT Tag
@@ -195,11 +201,17 @@ void get_symbol_list(SyntaxTree *node, int type) {
             if (strcmp(node->child_ast[i]->name, "VarDec") == 0) {
                 arg *temp_arg = get_var(node->child_ast[0]);
                 temp_arg->type += type;
-                insert_symbol(temp_arg->name, temp_arg->type, NULL, -1);
+                int flag = insert_symbol(temp_arg->name, temp_arg->type, NULL, -1);
+                if (flag == 0) {
+                    print_error(temp_arg->name, 0, REDEFINED_VAR);
+                }
             } 
             else if (strcmp(node->child_ast[i]->name, "FunDec") == 0) {
                 arg *temp_arg = get_fun(node->child_ast[0]);
-                insert_symbol(temp_arg->name, -1, temp_arg->next, type);
+                int flag = insert_symbol(temp_arg->name, FUN, temp_arg->next, type);
+                if (flag == 0) {
+                    print_error(temp_arg->name, 0, REDEFINED_FUN);
+                }
             }
             else {
                 // reduce branche
@@ -211,6 +223,15 @@ void get_symbol_list(SyntaxTree *node, int type) {
     }
 }
 
+void set_fun_return_type(char *name, int return_type) {
+    unsigned int hash = BKDRHash(name);
+    hash_node *temp = lookup_hash(symboltable->table, symboltable->table_size, hash);
+    if (temp != NULL) {
+        temp->sym->return_type = return_type;
+    } else {
+        // ERROR HANDLE
+    }
+}
 
 
 int get_return_type(SyntaxTree* node) {

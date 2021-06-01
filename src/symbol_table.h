@@ -85,6 +85,7 @@ arg* get_member_list(SyntaxTree *node, int type, arg* tail);
 // VarDec
 char *append_domain(char *name, char *domain);
 int get_struct_num();
+void set_fun_return_type(char *name, int return_type);
 
 
 

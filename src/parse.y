@@ -73,6 +73,7 @@ ExtDef:
 	Specifier ExtDecList SEMI {
 		$$ = create_ast("ExtDef", "", 1);
 		add_ast_node(3, $$, $1, $2, $3);
+        get_symbol_list($2, get_type($1));
 	}
     | Specifier SEMI {
 		$$ = create_ast("ExtDef", "", 1);
@@ -81,7 +82,9 @@ ExtDef:
     | Specifier FunDec CompSt {
 		$$ = create_ast("ExtDef", "", 1);
 		add_ast_node(3, $$, $1, $2, $3);
-        //insert_symbol(char *name, int type, $2->, int return_type);
+        // exit fun 
+        exit_domain();
+        set_fun_return_type($2->child_ast[0]->text, get_type($1));
 	}
     ;
 
@@ -172,11 +175,20 @@ FunDec:
 	ID LP VarList RP {
 		$$ = create_ast("FunDec", "", 1);
 		add_ast_node(4, $$, $1, $2, $3, $4);
-        //insert_symbol($1.text, FUN, arg* args);
+        entry_domain($1->text);
+        int flag = insert_symbol($1->text, FUN, arg* args, -1);
+        if (flag == 0) {
+            print_error(node->child_ast[1]->child_ast[0]->text, 0, REDEFINED_FUN);
+        }
 	}
     | ID LP RP {
 		$$ = create_ast("FunDec", "", 1);
 		add_ast_node(3, $$, $1, $2, $3);
+        entry_domain($1->text);
+        int flag = insert_symbol($1->text, FUN, arg* args, -1);
+        if (flag == 0) {
+            print_error(node->child_ast[1]->child_ast[0]->text, 0, REDEFINED_FUN);
+        }
 	}
     | ID LP error RP {
         if(mistakeRecord[@3.first_line-1] == 0){
@@ -319,6 +331,7 @@ DefList:
     | Def DefList {
 		$$ = create_ast("DefList", "", 1);
 		add_ast_node(2, $$, $1, $2);
+        get_symbol_list( $1, -1);
 	}
     ;
 
