@@ -9,8 +9,9 @@ char *append_domain(char *name, char *domain) {
 }
 
 int get_struct_num() {
-    static int struct_num = 16;
-    return struct_num ++;
+    static int struct_num = 15;
+    struct_num += 2;
+    return struct_num;
 }
 
 void init_domain_stack(int size) {
@@ -54,47 +55,63 @@ void clear_symbol_table() {
     free_hashtable(symboltable->table, symboltable->table_size);
 }
 
-arg * get_args(SyntaxTree* node) {
-    arg *temp_arg = (arg *)malloc(sizeof(arg));
-    SyntaxTree *arg_type, *arg_name;
-    // VarList-->ParamDec-->VarDec
-    arg_name = node->child_ast[0]->child_ast[1];
-    // VarList-->ParamDec-->Specifier
-    arg_type = node->child_ast[0]->child_ast[0];
-    // VarDec-->ID 
-    temp_arg->name = arg_name->child_ast[0]->text;
-    // VarDec --> ID [INT]
-    if (arg_name->child_num == 4) {
-        if (strcmp(arg_type->child_ast[0]->text, "int") == 0) {
-            temp_arg->type = INT_ARRAY;
-        } 
-        else if (strcmp(arg_type->child_ast[0]->text, "float") == 0) {
-            temp_arg->type = FLOAT_ARRAY;
-        } else {
-            // handle struct 
-        }
-    } else {
-        if (strcmp(arg_type->child_ast[0]->text, "int") == 0) {
-            temp_arg->type = INT;
-        } 
-        else if (strcmp(arg_type->child_ast[0]->text, "float") == 0) {
-            temp_arg->type = FLOAT;
-        } else {
-            // handle struct 
-            temp_arg->type = STRUCT;
-        }
+// input: VarDec, output: Var with name and array or not
+arg* get_var(SyntaxTree *node) {
+    arg *temp = (arg *)malloc(sizeof(arg));
+    // VarDec-->ID
+    if (node->child_num == 1) {
+        temp->name = (char *)malloc(sizeof(char) * (strlen(node->child_ast[0]->text) + 1));
+        strcpy(temp->name, node->child_ast[0]->text);
+        temp->type = VAR;
+        return temp;
     }
-    if (args->child_num == 3) {
-        temp_arg->next = get_args(node->child_ast[2]);
+    // VarDec-->ID LB INT RB
+    if (node->child_num == 4) {
+        temp->name = (char *)malloc(sizeof(char) * (strlen(node->child_ast[0]->text) + 1));
+        strcpy(temp->name, node->child_ast[0]->text);
+        temp->type = ARRAY;
+        return temp;
     }
-    return temp_arg;
 }
 
-char *get_name(SyntaxTree* node) {
-    // FunDec-->ID
-    return node->child_ast[0]->text;
+// get the member of struct
+arg* get_member_list(SyntaxTree *node, int type, arg* tail) {
+    if (node->child_num > 0) {
+        int i = 0;
+        if (strcmp(node->child_ast[0]->name, "Specifier") == 0) {
+            type = get_type(node->child_ast[0]);
+            i ++;
+        }
+        for (; i < node->child_num; i++) {
+            if (strcmp(node->child_ast[i]->name, "VarDec") == 0) {
+                arg *temp_arg = get_var(node->child_ast[0]);
+                temp_arg->type += type;
+                temp_arg->next = NULL;
+                if (tail == NULL) {
+                    tail = temp_arg;
+                } else {
+                    tail->next = temp_arg;
+                    tail = tail->next;
+                }
+                insert_symbol(temp_arg->name, temp_arg->type, NULL, -1);
+            } 
+            else if (strcmp(node->child_ast[i]->name, "FunDec") == 0) {
+                //no fun in struct
+                //arg *temp_arg = get_fun(node->child_ast[0]);
+                //insert_symbol(temp_arg->name, -1, temp_arg->next, type);
+            }
+            else {
+                // reduce branche
+                if ((node->child_ast[i]->name, "StmtList") != 0) {
+                    tail = get_member_list(node->child_ast[i], type, tail);
+                }   
+            }
+        }
+    }
+    return tail;
 }
 
+// input: Spedidier, output: type
 int get_type(SyntaxTree* node) {
     if (strcmp(node->child_ast[0]->text, "int") == 0) {
         return INT;
@@ -104,11 +121,14 @@ int get_type(SyntaxTree* node) {
     } else {
         // Spedidier --> StructSpecifier
         node = node->child_ast[0];
+        // StructSpecifier --> STRUCT OptTag LC DefList RC
         if (node->child_num == 5) {
             int struct_type = get_struct_num();
-            //insert_symbol( , struct_type, , -1);
+            arg* temp = get_member_list(node->child_ast[3], -1, NULL);
+            insert_symbol(node->child_ast[1]->child_ast[0]->text, struct_type, temp, -1);
             return struct_type;
         } 
+        // StructSpecifier --> STRUCT Tag
         else if (node->child_num == 2){
             char *temp0 = append_domain(node->child_ast[1]->text, "struct");
             char *temp1 = append_domain(temp0, get_current_domain());
@@ -132,6 +152,66 @@ int get_type(SyntaxTree* node) {
         }
     }
 }
+
+// input: VarList, output args
+arg * get_args(SyntaxTree* node) {
+    // VarList-->ParamDec-->VarDec
+    arg *temp_arg = get_var(node->child_ast[0]->child_ast[1]);
+    // VarList-->ParamDec-->Specifier
+    int type = get_type(node->child_ast[0]->child_ast[0]);
+    // VarDec --> ID [INT]
+    temp_arg->type = type + temp_arg->type;
+    if (node->child_num == 3) {
+        temp_arg->next = get_args(node->child_ast[2]);
+    }
+    return temp_arg;
+}
+
+// input: FunDec
+arg* get_fun(SyntaxTree *node) {
+    arg *temp = (arg *)malloc(sizeof(arg));    
+    temp->name = (char *)malloc(sizeof(char *) * (strlen(node->child_ast[0]->text) + 1));
+    strcpy(temp->name, node->child_ast[0]->text);
+    // FunDec-->ID LP VarList RP
+    if (node->child_num == 4) {
+        temp->next = get_args(node->child_ast[2]);
+    }
+    else if (node->child_num == 3) {
+        temp->next = NULL;
+    } 
+    else {
+        // Error Handle
+    }
+}
+
+void get_symbol_list(SyntaxTree *node, int type) {
+    if (node->child_num > 0) {
+        int i = 0;
+        if (strcmp(node->child_ast[0]->name, "Specifier") == 0) {
+            type = get_type(node->child_ast[0]);
+            i ++;
+        }
+        for (; i < node->child_num; i++) {
+            if (strcmp(node->child_ast[i]->name, "VarDec") == 0) {
+                arg *temp_arg = get_var(node->child_ast[0]);
+                temp_arg->type += type;
+                insert_symbol(temp_arg->name, temp_arg->type, NULL, -1);
+            } 
+            else if (strcmp(node->child_ast[i]->name, "FunDec") == 0) {
+                arg *temp_arg = get_fun(node->child_ast[0]);
+                insert_symbol(temp_arg->name, -1, temp_arg->next, type);
+            }
+            else {
+                // reduce branche
+                if ((node->child_ast[i]->name, "StmtList") != 0) {
+                    get_symbol_list(node->child_ast[i], type);
+                }   
+            }
+        }
+    }
+}
+
+
 
 int get_return_type(SyntaxTree* node) {
     // don't consider arrays
@@ -168,7 +248,7 @@ int insert_symbol(char *name, int type, arg* args, int return_type) {
         hash = BKDRHash(sym->name);
         sym->return_type = return_type;
     } else {
-        sym->domain = (char *)malloc(sizeof(char) * (strlen(temp) + 1));
+        sym->domain = (char *)malloc(sizeof(char) * (strlen(get_current_domain()) + 1));
         strcpy(sym->domain, get_current_domain());
         //temp = (char *)malloc(sizeof(char) * (strlen(sym->domain) + 1 + strlen(sym->name) + 1));
         //strcat(temp, sym->domain);

@@ -7,8 +7,10 @@
 #include "error.h"
 #include "ast.h"
 
-#define FUN 1
-#define VAR 2
+
+#define VAR 0
+#define ARRAY 1
+#define FUN 2
 #define STRUCT 3
 #define INT 5
 #define FLOAT 7 
@@ -71,13 +73,19 @@ void clear_symbol_table();
 int insert_symbol(char *name, int type, arg* args, int return_type);
 // -1 is not found, other num is type of the var / fun;
 int lookup(char *name, int type);
-arg * get_args(SyntaxTree* node);
-char *get_name(SyntaxTree* node);
-int get_type(SyntaxTree* node);
-int get_return_type(SyntaxTree* node);
 
+arg * get_args(SyntaxTree* node);
+arg* get_var(SyntaxTree *node);
+int get_type(SyntaxTree* node);
+arg* get_var(SyntaxTree *node);
+arg* get_fun(SyntaxTree *node);
+void get_symbol_list(SyntaxTree *node, int type);
+arg* get_member_list(SyntaxTree *node, int type, arg* tail);
+
+// VarDec
 char *append_domain(char *name, char *domain);
 int get_struct_num();
+
 
 
 #endif
