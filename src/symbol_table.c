@@ -9,7 +9,7 @@ char *append_domain(char *name, char *domain) {
 }
 
 int get_struct_num() {
-    static int struct_num = 15;
+    static int struct_num = STRUCT_BASE - 1;
     struct_num += 2;
     return struct_num;
 }
@@ -138,15 +138,15 @@ int get_type(SyntaxTree* node) {
         else if (node->child_num == 2){
             char *temp0 = append_domain(node->child_ast[1]->text, "struct");
             char *temp1 = append_domain(temp0, get_current_domain());
-            int flag = lookup(temp1, STRUCT);
+            hash_node *temp_node = lookup(temp1, STRUCT);
             free(temp1);
-            if (flag != -1) {
-                return flag;
+            if (temp_node->sym->type != -1) {
+                return temp_node->sym->type;
             } else {
-                flag = lookup(temp0, STRUCT);
+                temp_node = lookup(temp0, STRUCT);
                 free(temp0);
-                if (flag != -1) {
-                    return flag;
+                if (temp_node->sym->type != -1) {
+                    return temp_node->sym->type;
                 } else {
                     // error handle
                     //print_error();
@@ -251,9 +251,37 @@ int get_return_type(SyntaxTree* node) {
             return STRUCT;
         }
         char *temp = append_domain(node->child_ast[1]->text, "struct");
-        int flag = lookup(temp, STRUCT);
+        hash_node *temp_node = lookup(temp, STRUCT);
         free(temp);
-        return flag;
+        return temp_node->sym->return_type;
+    }
+}
+
+// Args --> Exp COMMA Args 
+void check_args(hash_node * fun_node, SyntaxTree* args) {
+    arg * fun_arg = fun_node->sym->args;
+    while (fun_arg) {
+        if (args->child_num == 3) {
+            if (fun_arg->type != args->child_ast[0]->type) {
+                print_error(fun_arg->name, 0, MISMATCHED_TYPE_PARAMETER);
+            }
+            args = args->child_ast[2];
+            fun_arg = fun_arg->next;
+        }
+        if (args->child_num == 1) {
+            if (fun_arg->type != args->child_ast[0]->type) {
+                print_error(fun_arg->name, 0, MISMATCHED_TYPE_PARAMETER);
+            }
+            fun_arg = fun_arg->next;
+            args = NULL;
+            break;
+        }
+    }
+    if (fun_arg) {
+        print_error(fun_arg->name, 0, MISMATCHED_TYPE_PARAMETER);
+    }
+    if (args) {
+        print_error("", 0, MISMATCHED_TYPE_PARAMETER);
     }
 }
 
@@ -283,7 +311,7 @@ int insert_symbol(char *name, int type, arg* args, int return_type) {
     return insert_hash(symboltable->table, symboltable->table_size, hash, sym);
 }
 
-int lookup(char *name, int type) {
+hash_node * lookup(char *name, int type) {
     int hash;
     if (type == FUN) {
         hash = BKDRHash(name);
@@ -298,10 +326,7 @@ int lookup(char *name, int type) {
     }
     char *domain = get_current_domain();
     hash_node *temp = lookup_hash(symboltable->table, symboltable->table_size, hash);
-    if (temp == NULL) {
-        return -1;
-    }
-    return temp->sym->type;
+    return temp;
 }
 
 unsigned int BKDRHash(char *str) {

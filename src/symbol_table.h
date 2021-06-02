@@ -18,6 +18,7 @@
 #define INT_ARRAY 6
 #define FLOAT_ARRAY 8
 // Larger numbers are reserved for struct
+#define STRUCT_BASE 16
 
 #define GLOBAL "global"
 
@@ -72,7 +73,7 @@ void init_symbol_table(int size);
 void clear_symbol_table();
 int insert_symbol(char *name, int type, arg* args, int return_type);
 // -1 is not found, other num is type of the var / fun;
-int lookup(char *name, int type);
+hash_node * lookup(char *name, int type);
 
 arg * get_args(SyntaxTree* node);
 arg* get_var(SyntaxTree *node);
@@ -86,7 +87,7 @@ arg* get_member_list(SyntaxTree *node, int type, arg* tail);
 char *append_domain(char *name, char *domain);
 int get_struct_num();
 void set_fun_return_type(char *name, int return_type);
-
+void check_args(hash_node * fun_node, SyntaxTree* args);
 
 
 #endif

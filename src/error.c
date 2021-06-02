@@ -19,7 +19,7 @@ void print_error(char *name, int line, int error_num) {
         printf("Error at Line %d: Different types on two sides of \"%s\"\n", line, name);
         break;
     case MISMATCHED_TYPE_OP:
-        printf("Error at Line %d: Different types on two sides of \"%s\"\n", line, name);
+        printf("Error at Line %d: Wrong types of \"%s\"\n", line, name);
         break;
     case MISMATCHED_TYPE_PARAMETER:
         printf("Error at Line %d: Wrong types of parameter \"%s\"\n", line, name);

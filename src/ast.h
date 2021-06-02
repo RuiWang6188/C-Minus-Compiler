@@ -14,6 +14,7 @@ typedef struct SYNTAXTREE{
     struct SYNTAXTREE* child_ast[MAX_CHILD_NUM];   // child node array
     int line_no;      // the line number of the first child
     int is_nonterminal;    // 1 for nonterminal, 0 for terminal    
+    int type;
 }SyntaxTree;
 
 SyntaxTree* create_ast(char* name, char* s, int is_nonterminal);
@@ -21,6 +22,8 @@ SyntaxTree* create_ast(char* name, char* s, int is_nonterminal);
 void add_ast_node(int child_num, SyntaxTree* node, ...);
 
 void print_ast(SyntaxTree* root, int count);
+
+void set_type(SyntaxTree* node, int type);
 
 SyntaxTree* ROOT;
 

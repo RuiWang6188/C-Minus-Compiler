@@ -60,3 +60,7 @@ void print_ast(SyntaxTree* root, int count)
             print_ast(root->child_ast[i],count+1);
     }
 }
+
+void set_type(SyntaxTree* node, int type) {
+    node->type = type;
+}

@@ -83,17 +83,17 @@ TAB \t|" "
 
 {SEMI}   {yylval.label_tree = create_ast("SEMI","",0); return SEMI;}
 {COMMA}   {yylval.label_tree = create_ast("COMMA","",0); return COMMA;}
-{ASSIGNOP}   {yylval.label_tree = create_ast("ASSIGNOP","",0); return ASSIGNOP;}
+{ASSIGNOP}   {yylval.label_tree = create_ast("ASSIGNOP","=",0); return ASSIGNOP;}
 {RELOP}   {yylval.label_tree = create_ast("RELOP",yytext,0);; return RELOP;}
-{PLUS}   {yylval.label_tree = create_ast("PLUS","",0); return PLUS;}
-{MINUS}   {yylval.label_tree = create_ast("MINUS","",0); return MINUS;}
-{STAR}   {yylval.label_tree = create_ast("STAR","",0); return STAR;}
-{DIV}   {yylval.label_tree = create_ast("DIV","",0); return DIV;}
+{PLUS}   {yylval.label_tree = create_ast("PLUS","+",0); return PLUS;}
+{MINUS}   {yylval.label_tree = create_ast("MINUS","-",0); return MINUS;}
+{STAR}   {yylval.label_tree = create_ast("STAR","*",0); return STAR;}
+{DIV}   {yylval.label_tree = create_ast("DIV","/",0); return DIV;}
 
-{AND}   {yylval.label_tree = create_ast("AND","",0); return AND;}
-{OR}   {yylval.label_tree = create_ast("OR","",0); return OR;}
-{DOT}   {yylval.label_tree = create_ast("DOT","",0); return DOT;}
-{NOT}   {yylval.label_tree = create_ast("NOT","",0); return NOT;}
+{AND}   {yylval.label_tree = create_ast("AND","&&",0); return AND;}
+{OR}   {yylval.label_tree = create_ast("OR","||",0); return OR;}
+{DOT}   {yylval.label_tree = create_ast("DOT",".",0); return DOT;}
+{NOT}   {yylval.label_tree = create_ast("NOT","!",0); return NOT;}
 
 {COMMENTBEGIN}    {
             int line=yylineno;
