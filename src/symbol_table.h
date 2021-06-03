@@ -12,13 +12,13 @@
 #define ARRAY 1
 #define FUN 2
 #define STRUCT 3
-#define INT 5
-#define FLOAT 7 
+#define INT 4
+#define FLOAT 6 
 // use even to identify arrays
-#define INT_ARRAY 6
-#define FLOAT_ARRAY 8
+#define INT_ARRAY 5
+#define FLOAT_ARRAY 7
 // Larger numbers are reserved for struct
-#define STRUCT_BASE 16
+#define STRUCT_BASE 15
 
 #define GLOBAL "global"
 
@@ -31,6 +31,7 @@ typedef struct _arg {
 typedef struct _symbol {
     char *name;
     char *domain;
+    char *ir_name;
     int type;
     int return_type;
     struct _arg *args;

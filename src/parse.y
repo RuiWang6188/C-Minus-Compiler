@@ -517,7 +517,7 @@ Exp:
     | Exp DOT ID {
         $$ = create_ast("Exp", "", 1);
         add_ast_node(3, $$, $1, $2, $3);
-        if ($1->type > STRUCT_BASE && (($1->type) % 2 == 1)) {
+        if ($1->type > STRUCT_BASE && (($1->type) % 2 == 0)) {
             hash_node *temp = lookup($1->child_ast[0]->text, STRUCT);
             if (temp == NULL) {
                 print_error($3->text, 0, UNDEFINED_VAR);

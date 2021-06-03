@@ -21,8 +21,13 @@
 
 // <result> = alloca [inalloca] <type> [, <ty> <NumElements>] [, align <alignment>] [, addrspace(<num>)]     ; yields type addrspace(num)*:result
 #define IR_ALLOCATE "alloca"
+#define IR_ALIGN "align"
 
 #define IR_VAR_INT_ALLOCATE "alloca i32, align 4"
+#define IR_VAR_FLOAT_ALLOCATE "alloca float, align 4"
+
+// <result> = phi <ty> [<val0>, <label0>], [<val1>, <label1>] …
+#define IR_PHI "phi"
 
 #define IR_LOAD "load"
 #define IR_STORE "store"
@@ -116,10 +121,17 @@
 
 FILE *IR, *ASM;
 
+int ir_var_number = 0;
+
 void traverse_ast(SyntaxTree *node);
-void ir_bulid_fundec(SyntaxTree *node);
-void ir_bulid_vardec(SyntaxTree *node);
-void ir_build_while(SyntaxTree *node);
+char * ir_bulid_fundec(SyntaxTree *node);
+char * ir_bulid_vardec(SyntaxTree *node);
+char * ir_build_while(SyntaxTree *node);
+char * ir_build_if(SyntaxTree *node);
+char *ir_get_type_name(SyntaxTree *node);
 int get_label();
+
+char * get_var_name(char * domain);
+void reset_var_name();
 
 #endif
