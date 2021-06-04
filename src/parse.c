@@ -41,6 +41,70 @@ char * ir_build_assignop_left(SyntaxTree *node) {
 
 }
 
+char * ir_build_compst(SyntaxTree *node) {
+
+}
+
+// Stmt
+char * ir_build_stmt(SyntaxTree *node) {
+    char *ir_var_name;
+    // Stmt --> CompSt
+    if (strcmp(node->child_ast[0]->name, "Compst") == 0) {
+        char * var_value = ir_build_compst(node->child_ast[0]);
+        // fprintf(IR, "", var_value);
+    }
+
+    else if (strcmp(node->child_ast[0]->name, "RETURN") == 0) {
+        // Stmt --> RETURN Exp
+        if (node->child_num==2) {    
+            char *temp = ir_build_exp(node->child_ast[1]);
+            *ir_var_name = get_var_name(get_current_domain());
+            if (node->child_ast[1]->type == INT) {
+                fprintf(IR, "%s = ret i32 %s \n", ir_var_name, temp);
+                return ir_var_name;
+            }
+            else if (node->child_ast[1]->type == FLOAT) {
+                fprintf(IR, "%s = ret float %s \n", ir_var_name, temp);
+                return ir_var_name;
+            }
+            else {
+                // Error
+            }
+            return NULL;
+        }
+        // Stmt --> RETURN Exp SEMI
+        else if (node->child_num==3) {
+            
+        }
+    }
+    
+    else if (strcmp(node->child_ast[0]->name, "Exp") == 0) {
+        // Stmt --> Exp
+        if (node->child_num==1) {
+            return ir_build_exp(node->child_ast[0]);
+        }
+
+        // Stmt --> Exp SEMI
+        else if (node->child_num==2) {
+
+        }
+    }
+
+    // Stmt --> IF LP Exp RP Stmt %prec LOWER_THAN_ELSE
+    // Stmt --> IF LP Exp RP Stmt ELSE Stmt
+    else if (strcmp(node->child_ast[0]->name, "IF") == 0) {
+        
+    }
+
+
+    // Stmt --> WHILE LP Exp RP Stmt
+    else if (strcmp(node->child_ast[0]->name, "WHILE") == 0) {
+        
+    }
+
+    
+}
+
 // Exp
 char * ir_build_exp(SyntaxTree *node) {
     char *ir_var_name;

@@ -133,6 +133,7 @@ char * ir_build_assignop_left(SyntaxTree *node);
 char * ir_build_args(SyntaxTree *node);
 char * ir_get_type_name(SyntaxTree *node);
 char * ir_get_return_type_name(int type);
+char * ir_build_stmt(SyntaxTree *node);
 int get_label();
 
 char * get_var_name(char * domain);
