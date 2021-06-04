@@ -7,7 +7,7 @@
 #include "error.h"
 #include "ast.h"
 
-
+#define VOID -1
 #define VAR 0
 #define ARRAY 1
 #define FUN 2

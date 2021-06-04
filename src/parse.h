@@ -128,7 +128,11 @@ char * ir_bulid_fundec(SyntaxTree *node);
 char * ir_bulid_vardec(SyntaxTree *node);
 char * ir_build_while(SyntaxTree *node);
 char * ir_build_if(SyntaxTree *node);
-char *ir_get_type_name(SyntaxTree *node);
+char * ir_build_exp(SyntaxTree *node);
+char * ir_build_assignop_left(SyntaxTree *node);
+char * ir_build_args(SyntaxTree *node);
+char * ir_get_type_name(SyntaxTree *node);
+char * ir_get_return_type_name(int type);
 int get_label();
 
 char * get_var_name(char * domain);
