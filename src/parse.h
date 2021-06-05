@@ -116,8 +116,8 @@
 #include "ast.h"
 #include "symbol_table.h"
 #include "error.h"
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 FILE *IR, *ASM;
 
