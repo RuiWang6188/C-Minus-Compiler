@@ -176,18 +176,19 @@ FunDec:
 		$$ = create_ast("FunDec", "", 1);
 		add_ast_node(4, $$, $1, $2, $3, $4);
         entry_domain($1->text);
-        int flag = insert_symbol($1->text, FUN, arg* args, -1);
+        symbol * args = get_args($3);
+        int flag = insert_symbol($1->text, FUN_TYPE, args, -1);
         if (flag == 0) {
-            print_error(node->child_ast[1]->child_ast[0]->text, 0, REDEFINED_FUN);
+            print_error($1->text, 0, REDEFINED_FUN);
         }
 	}
     | ID LP RP {
 		$$ = create_ast("FunDec", "", 1);
 		add_ast_node(3, $$, $1, $2, $3);
         entry_domain($1->text);
-        int flag = insert_symbol($1->text, FUN, arg* args, -1);
+        int flag = insert_symbol($1->text, FUN_TYPE, NULL, -1);
         if (flag == 0) {
-            print_error(node->child_ast[1]->child_ast[0]->text, 0, REDEFINED_FUN);
+            print_error($1->text, 0, REDEFINED_FUN);
         }
 	}
     | ID LP error RP {
@@ -267,7 +268,7 @@ Stmt:
     | RETURN Exp SEMI {
 		$$ = create_ast("Stmt", "", 1);
 		add_ast_node(3, $$, $1, $2, $3);
-        hash_node *temp = lookup(get_current_domain(), FUN);
+        hash_node *temp = lookup(get_current_domain(), FUN_TYPE, GLOBAL);
         if ((temp == NULL) || $2->type != temp->sym->type) {
             print_error("", 0, MISMATCHED_TYPE_RETURN);
         }
@@ -275,14 +276,14 @@ Stmt:
     | IF LP Exp RP Stmt %prec LOWER_THAN_ELSE {
 		$$ = create_ast("Stmt", "", 1);
 		add_ast_node(5, $$, $1, $2, $3, $4, $5);
-        if ($3->type != INT) {
+        if ($3->type != INT_TYPE) {
             //print_error("", 0, MISMATCHED_TYPE_RETURN);
         }
 	}
     | IF LP Exp RP Stmt ELSE Stmt {
 		$$ = create_ast("Stmt", "", 1);
 		add_ast_node(7, $$, $1, $2, $3, $4, $5, $6, $7);
-        if ($3->type != INT) {
+        if ($3->type != INT_TYPE) {
             //print_error("", 0, MISMATCHED_TYPE_RETURN);
         }
 	}
@@ -296,7 +297,7 @@ Stmt:
     | WHILE LP Exp RP Stmt {
 		$$ = create_ast("Stmt", "", 1);
 		add_ast_node(5, $$, $1, $2, $3, $4, $5);
-        if ($3->type != INT) {
+        if ($3->type != INT_TYPE) {
             //print_error("", 0, MISMATCHED_TYPE_RETURN);
         }
 	}
@@ -392,17 +393,17 @@ Dec:
 		$$ = create_ast("Dec", "", 1);
 		add_ast_node(1, $$, $1);
 	}
-    | VarDec ASSIGNOP Exp {
-		$$ = create_ast("Dec", "", 1);
-		add_ast_node(3, $$, $1, $2, $3);
-	}
+    //| VarDec ASSIGNOP Exp {
+	//	$$ = create_ast("Dec", "", 1);
+	//	add_ast_node(3, $$, $1, $2, $3);
+	//}
     ;
 
 Exp:  
 	Exp ASSIGNOP Exp {
 		$$ = create_ast("Exp", "", 1);
 		add_ast_node(3, $$, $1, $2, $3);
-        if ($1->type != $2->type && ($1->type != INT || $1->type != FLOAT)) {
+        if ($1->type != $2->type && ($1->type != INT_TYPE || $1->type != FLOAT_TYPE)) {
             print_error($2->text, 0, MISMATCHED_TYPE_OP);
         }
         // use INT for BOOL
@@ -411,34 +412,34 @@ Exp:
     | Exp AND Exp {
 		$$ = create_ast("Exp", "", 1);
 		add_ast_node(3, $$, $1, $2, $3);
-        if ($1->type != $2->type && ($1->type != INT)) {
+        if ($1->type != $2->type && ($1->type != INT_TYPE)) {
             print_error($2->text, 0, MISMATCHED_TYPE_OP);
         }
         // use INT for BOOL
-        set_type($$, INT);
+        set_type($$, INT_TYPE);
 	}
     | Exp OR Exp {
         $$ = create_ast("Exp", "", 1);
         add_ast_node(3, $$, $1, $2, $3);
-        if ($1->type != $2->type && ($1->type != INT)) {
+        if ($1->type != $2->type && ($1->type != INT_TYPE)) {
             print_error($2->text, 0, MISMATCHED_TYPE_OP);
         }
         // use INT for BOOL
-        set_type($$, INT);
+        set_type($$, INT_TYPE);
     }
     | Exp RELOP Exp {
         $$ = create_ast("Exp", "", 1);
         add_ast_node(3, $$, $1, $2, $3);
-        if ($1->type != $2->type && ($1->type != INT || $1->type != FLOAT)) {
+        if ($1->type != $2->type && ($1->type != INT_TYPE || $1->type != FLOAT_TYPE)) {
             print_error($2->text, 0, MISMATCHED_TYPE_OP);
         }
         // use INT for BOOL
-        set_type($$, INT);
+        set_type($$, INT_TYPE);
     }
     | Exp PLUS Exp {
         $$ = create_ast("Exp", "", 1);
         add_ast_node(3, $$, $1, $2, $3);
-        if ($1->type != $2->type && ($1->type != INT || $1->type != FLOAT)) {
+        if ($1->type != $2->type && ($1->type != INT_TYPE || $1->type != FLOAT_TYPE)) {
             print_error($2->text, 0, MISMATCHED_TYPE_OP);
         }
         set_type($$, $1->type);
@@ -446,7 +447,7 @@ Exp:
     | Exp MINUS Exp {
         $$ = create_ast("Exp", "", 1);
         add_ast_node(3, $$, $1, $2, $3);
-        if ($1->type != $2->type && ($1->type != INT || $1->type != FLOAT)) {
+        if ($1->type != $2->type && ($1->type != INT_TYPE || $1->type != FLOAT_TYPE)) {
             print_error($2->text, 0, MISMATCHED_TYPE_OP);
         }
         set_type($$, $1->type);
@@ -454,7 +455,7 @@ Exp:
     | Exp STAR Exp {
         $$ = create_ast("Exp", "", 1);
         add_ast_node(3, $$, $1, $2, $3);
-        if ($1->type != $2->type && ($1->type != INT || $1->type != FLOAT)) {
+        if ($1->type != $2->type && ($1->type != INT_TYPE || $1->type != FLOAT_TYPE)) {
             print_error($2->text, 0, MISMATCHED_TYPE_OP);
         }
         set_type($$, $1->type);
@@ -462,7 +463,7 @@ Exp:
     | Exp DIV Exp {
         $$ = create_ast("Exp", "", 1);
         add_ast_node(3, $$, $1, $2, $3);
-        if ($1->type != $2->type && ($1->type != INT || $1->type != FLOAT)) {
+        if ($1->type != $2->type && ($1->type != INT_TYPE || $1->type != FLOAT_TYPE)) {
             print_error($2->text, 0, MISMATCHED_TYPE_OP);
         }
         set_type($$, $1->type);
@@ -475,7 +476,7 @@ Exp:
     | MINUS Exp {
         $$ = create_ast("Exp", "", 1);
         add_ast_node(2, $$, $1, $2);
-        if ($2->type == INT || $2->type == FLOAT) {
+        if ($2->type == INT_TYPE || $2->type == FLOAT_TYPE) {
             set_type($$, $2->type);
         } else {
             print_error($1->text, 0, MISMATCHED_TYPE_OP);
@@ -485,11 +486,12 @@ Exp:
     | NOT Exp {
         $$ = create_ast("Exp", "", 1);
         add_ast_node(2, $$, $1, $2);
+        set_type($$, INT_TYPE);
     }
     | ID LP Args RP {
         $$ = create_ast("Exp", "", 1);
         add_ast_node(4, $$, $1, $2, $3, $4);
-        hash_node *temp = lookup($1->text, FUN);
+        hash_node *temp = lookup($1->text, FUN_TYPE, GLOBAL);
         if (temp == NULL) {
             print_error($1->text, 0, UNDEFINED_FUN);
             set_type($$, temp->sym->return_type);
@@ -501,7 +503,7 @@ Exp:
     | ID LP RP {
         $$ = create_ast("Exp", "", 1);
         add_ast_node(3, $$, $1, $2, $3);
-        hash_node *temp = lookup($1->text, FUN);
+        hash_node *temp = lookup($1->text, FUN_TYPE, GLOBAL);
         if (temp == NULL) {
             print_error($1->text, 0, UNDEFINED_FUN);
             set_type($$, temp->sym->return_type);
@@ -510,38 +512,42 @@ Exp:
             check_args(temp, NULL);
         }
     }
-    | Exp LB Exp RB {
+    // 
+    | ID LB Exp RB {
         $$ = create_ast("Exp", "", 1);
         add_ast_node(4, $$, $1, $2, $3, $4);
+        hash_node *temp = lookup($1->text, VAR, get_current_domain());
+        set_type($$, temp->sym->type - 1);
     }
+    // Needs optimization
     | Exp DOT ID {
         $$ = create_ast("Exp", "", 1);
         add_ast_node(3, $$, $1, $2, $3);
-        if ($1->type > STRUCT_BASE && (($1->type) % 2 == 0)) {
-            hash_node *temp = lookup($1->child_ast[0]->text, STRUCT);
-            if (temp == NULL) {
-                print_error($3->text, 0, UNDEFINED_VAR);
-            } else {
-                arg * temp_arg = temp->sym->args;
-                while (temp_arg) {
-                    if (strcmp(temp_arg->name, $3->text) == 0) {
-                        $$->type = temp_arg->type;
-                        break;
-                    }
-                }
-                if (!temp_arg) {
-                    print_error($3->text, 0, ACCESS_UNDEFINED_FIELDS_IN_STRUCT);
-                }
-            }
-        } else {
-            print_error($3->text, 0, NONSTRUCT_VAR_USE_DOT);
-        }
+        //if ($1->type > STRUCT_BASE && (($1->type) % 2 == 0)) {
+        //    //hash_node *temp = lookup($1->child_ast[0]->text, STRUCT_TYPE, );
+        //    if (temp == NULL) {
+        //        print_error($3->text, 0, UNDEFINED_VAR);
+        //    } else {
+        //        symbol * temp_arg = temp->sym->args;
+        //        while (temp_arg) {
+        //            if (strcmp(temp_arg->name, $3->text) == 0) {
+        //                $$->type = temp_arg->type;
+        //                break;
+        //            }
+        //        }
+        //        if (!temp_arg) {
+        //            print_error($3->text, 0, ACCESS_UNDEFINED_FIELDS_IN_STRUCT);
+        //        }
+        //    }
+        //} else {
+        //    print_error($3->text, 0, NONSTRUCT_VAR_USE_DOT);
+        //}
 
     }
     | ID {
         $$ = create_ast("Exp", "", 1);
         add_ast_node(1, $$, $1);
-        hash_node *temp = lookup($1->text, VAR);
+        hash_node *temp = lookup($1->text, VAR, get_current_domain());
         if (temp == NULL) {
             print_error($1->text, 0, UNDEFINED_VAR);
         } else {
@@ -551,12 +557,12 @@ Exp:
     | INT {
         $$ = create_ast("Exp", "", 1);
         add_ast_node(1, $$, $1);
-        set_type($$, INT);
+        set_type($$, INT_TYPE);
     }
     | FLOAT {
         $$ = create_ast("Exp", "", 1);
         add_ast_node(1, $$, $1);
-        set_type($$, FLOAT);
+        set_type($$, FLOAT_TYPE);
     }
     | Exp ASSIGNOP error SEMI {
         if(mistakeRecord[@3.first_line-1] == 0){

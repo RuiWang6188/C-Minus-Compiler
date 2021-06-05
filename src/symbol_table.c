@@ -49,6 +49,21 @@ void init_symbol_table(int size) {
     symboltable = (symbol_table *)malloc(sizeof(symbol_table));
     symboltable->table_size = size;
     init_hash_table(symboltable->table, symboltable->table_size);
+    structtable = (struct_table *)malloc(sizeof(struct_table));
+    structtable->size = size;
+    structtable->struct_array = (struct_type *)malloc(sizeof(struct_type) * size);
+}
+
+void add_struct_type(char *name, int type, char *domain) {
+    int index = (type - STRUCT_BASE - 1) % 2;
+    if (index >= structtable->size) {
+        struct_type * temp = (struct_type *)malloc(sizeof(struct_type) * structtable->size * 2);
+        memcpy(temp, structtable->struct_array, structtable->size * sizeof(char *) * 2);
+        free(structtable->struct_array);
+        structtable->struct_array = temp;
+    }
+    structtable->struct_array[index].domain = domain;
+    structtable->struct_array[index].struct_name = name;
 }
 
 void clear_symbol_table() {
@@ -56,13 +71,19 @@ void clear_symbol_table() {
 }
 
 // input: VarDec, output: Var with name and array or not
-arg* get_var(SyntaxTree *node) {
-    arg *temp = (arg *)malloc(sizeof(arg));
+symbol* get_var(SyntaxTree *node) {
+    symbol *temp = (symbol *)malloc(sizeof(symbol));
+    temp->next = NULL;
+    temp->args = NULL;
+    temp->ir_name = NULL;
+    temp->domain = NULL;
+    temp->return_type = VOID;
     // VarDec-->ID
     if (node->child_num == 1) {
         temp->name = (char *)malloc(sizeof(char) * (strlen(node->child_ast[0]->text) + 1));
         strcpy(temp->name, node->child_ast[0]->text);
         temp->type = VAR;
+        temp->array_size = 0;
         return temp;
     }
     // VarDec-->ID LB INT RB
@@ -70,12 +91,13 @@ arg* get_var(SyntaxTree *node) {
         temp->name = (char *)malloc(sizeof(char) * (strlen(node->child_ast[0]->text) + 1));
         strcpy(temp->name, node->child_ast[0]->text);
         temp->type = ARRAY;
+        temp->array_size = atoi(node->child_ast[2]->text);
         return temp;
     }
 }
 
 // get the member of struct
-arg* get_member_list(SyntaxTree *node, int type, arg* tail) {
+symbol* get_member_list(SyntaxTree *node, int type, symbol* head, symbol* tail) {
     if (node->child_num > 0) {
         int i = 0;
         if (strcmp(node->child_ast[0]->name, "Specifier") == 0) {
@@ -84,7 +106,7 @@ arg* get_member_list(SyntaxTree *node, int type, arg* tail) {
         }
         for (; i < node->child_num; i++) {
             if (strcmp(node->child_ast[i]->name, "VarDec") == 0) {
-                arg *temp_arg = get_var(node->child_ast[0]);
+                symbol *temp_arg = get_var(node->child_ast[0]);
                 temp_arg->type += type;
                 temp_arg->next = NULL;
                 if (tail == NULL) {
@@ -93,7 +115,16 @@ arg* get_member_list(SyntaxTree *node, int type, arg* tail) {
                     tail->next = temp_arg;
                     tail = tail->next;
                 }
-                int flag = insert_symbol(temp_arg->name, temp_arg->type, NULL, -1);
+                //int flag = insert_symbol(temp_arg->name, temp_arg->type, NULL, -1);
+                int flag = 1;
+                temp_arg = head;
+                while ((temp_arg != tail)) {
+                    if (strcmp(temp_arg->name, tail->name) == 0) {
+                        flag = 0;
+                        break;
+                    }
+                    temp_arg = temp_arg->next;
+                }
                 if (flag == 0) {
                     print_error(node->child_ast[1]->child_ast[0]->text, 0, REDEFINED_FIELDS_IN_STRUCT);
                 }
@@ -106,7 +137,7 @@ arg* get_member_list(SyntaxTree *node, int type, arg* tail) {
             else {
                 // reduce branche
                 if ((node->child_ast[i]->name, "StmtList") != 0) {
-                    tail = get_member_list(node->child_ast[i], type, tail);
+                    tail = get_member_list(node->child_ast[i], type, head, tail);
                 }   
             }
         }
@@ -117,34 +148,32 @@ arg* get_member_list(SyntaxTree *node, int type, arg* tail) {
 // input: Spedidier, output: type
 int get_type(SyntaxTree* node) {
     if (strcmp(node->child_ast[0]->text, "int") == 0) {
-        return INT;
+        return INT_TYPE;
     } 
     else if (strcmp(node->child_ast[0]->text, "float") == 0) {
-        return FLOAT;
+        return FLOAT_TYPE;
     } else {
         // Spedidier --> StructSpecifier
         node = node->child_ast[0];
         // StructSpecifier --> STRUCT OptTag LC DefList RC
         if (node->child_num == 5) {
             int struct_type = get_struct_num();
-            arg* temp = get_member_list(node->child_ast[3], -1, NULL);
+            symbol* temp = NULL;
+            get_member_list(node->child_ast[3], -1, temp, temp);
             int flag = insert_symbol(node->child_ast[1]->child_ast[0]->text, struct_type, temp, -1);
             if (flag == 0) {
                 print_error(node->child_ast[1]->child_ast[0]->text, 0, REDEFINED_VAR);
             }
+            add_struct_type(node->child_ast[1]->child_ast[0]->text, struct_type, get_current_domain());
             return struct_type;
         } 
         // StructSpecifier --> STRUCT Tag
         else if (node->child_num == 2){
-            char *temp0 = append_domain(node->child_ast[1]->text, "struct");
-            char *temp1 = append_domain(temp0, get_current_domain());
-            hash_node *temp_node = lookup(temp1, STRUCT);
-            free(temp1);
+            hash_node *temp_node = lookup(node->child_ast[1]->text, STRUCT_TYPE, GLOBAL);
             if (temp_node->sym->type != -1) {
                 return temp_node->sym->type;
             } else {
-                temp_node = lookup(temp0, STRUCT);
-                free(temp0);
+                temp_node = lookup(node->child_ast[1]->text, STRUCT_TYPE, get_current_domain());
                 if (temp_node->sym->type != -1) {
                     return temp_node->sym->type;
                 } else {
@@ -160,13 +189,14 @@ int get_type(SyntaxTree* node) {
 }
 
 // input: VarList, output args
-arg * get_args(SyntaxTree* node) {
+symbol * get_args(SyntaxTree* node) {
     // VarList-->ParamDec-->VarDec
-    arg *temp_arg = get_var(node->child_ast[0]->child_ast[1]);
+    symbol *temp_arg = get_var(node->child_ast[0]->child_ast[1]);
     // VarList-->ParamDec-->Specifier
     int type = get_type(node->child_ast[0]->child_ast[0]);
     // VarDec --> ID [INT]
     temp_arg->type = type + temp_arg->type;
+    insert_symbol(temp_arg->name, temp_arg->type, temp_arg->args, temp_arg->return_type);
     if (node->child_num == 3) {
         temp_arg->next = get_args(node->child_ast[2]);
     }
@@ -174,16 +204,20 @@ arg * get_args(SyntaxTree* node) {
 }
 
 // input: FunDec
-arg* get_fun(SyntaxTree *node) {
-    arg *temp = (arg *)malloc(sizeof(arg));    
+symbol* get_fun(SyntaxTree *node) {
+    symbol *temp = (symbol *)malloc(sizeof(symbol));    
+    temp->next = NULL;
+    temp->ir_name = NULL;
+    temp->domain = NULL;
+    temp->return_type = VOID;
     temp->name = (char *)malloc(sizeof(char *) * (strlen(node->child_ast[0]->text) + 1));
     strcpy(temp->name, node->child_ast[0]->text);
     // FunDec-->ID LP VarList RP
     if (node->child_num == 4) {
-        temp->next = get_args(node->child_ast[2]);
+        temp->args = get_args(node->child_ast[2]);
     }
     else if (node->child_num == 3) {
-        temp->next = NULL;
+        temp->args = NULL;
     } 
     else {
         // Error Handle
@@ -199,7 +233,7 @@ void get_symbol_list(SyntaxTree *node, int type) {
         }
         for (; i < node->child_num; i++) {
             if (strcmp(node->child_ast[i]->name, "VarDec") == 0) {
-                arg *temp_arg = get_var(node->child_ast[0]);
+                symbol *temp_arg = get_var(node->child_ast[0]);
                 temp_arg->type += type;
                 int flag = insert_symbol(temp_arg->name, temp_arg->type, NULL, -1);
                 if (flag == 0) {
@@ -207,10 +241,17 @@ void get_symbol_list(SyntaxTree *node, int type) {
                 }
             } 
             else if (strcmp(node->child_ast[i]->name, "FunDec") == 0) {
-                arg *temp_arg = get_fun(node->child_ast[0]);
-                int flag = insert_symbol(temp_arg->name, FUN, temp_arg->next, type);
+                symbol *temp_arg = get_fun(node->child_ast[0]);
+                temp_arg->return_type = type;
+                int flag = insert_symbol(temp_arg->name, FUN_TYPE, temp_arg->next, type);
                 if (flag == 0) {
                     print_error(temp_arg->name, 0, REDEFINED_FUN);
+                } else {
+                    temp_arg = temp_arg->args;
+                    while (temp_arg) {
+                        insert_symbol(temp_arg->name, temp_arg->type, NULL, -1);
+                        temp_arg = temp_arg->next;
+                    }
                 }
             }
             else {
@@ -234,32 +275,30 @@ void set_fun_return_type(char *name, int return_type) {
 }
 
 
-int get_return_type(SyntaxTree* node) {
-    // don't consider arrays
-    if (strcmp(node->child_ast[0]->text, "int") == 0) {
-        return INT;
-    } 
-    else if (strcmp(node->child_ast[0]->text, "float") == 0) {
-        return FLOAT;
-    } 
-    else {
-        // todo: handle struct
-        // Spedidier --> StructSpecifier
-        node = node->child_ast[0];
-        if (node->child_num != 2) {
-            // todo error handle
-            return STRUCT;
-        }
-        char *temp = append_domain(node->child_ast[1]->text, "struct");
-        hash_node *temp_node = lookup(temp, STRUCT);
-        free(temp);
-        return temp_node->sym->return_type;
-    }
-}
+//int get_return_type(SyntaxTree* node) {
+//    // don't consider arrays
+//    if (strcmp(node->child_ast[0]->text, "int") == 0) {
+//        return INT_TYPE;
+//    } 
+//    else if (strcmp(node->child_ast[0]->text, "float") == 0) {
+//        return FLOAT_TYPE;
+//    } 
+//    else {
+//        // todo: handle struct
+//        // Spedidier --> StructSpecifier
+//        node = node->child_ast[0];
+//        if (node->child_num != 2) {
+//            // todo error handle
+//            return STRUCT_TYPE;
+//        }
+//        hash_node *temp_node = lookup(node->child_ast[1]->text, STRUCT_TYPE, get_current_domain());
+//        return temp_node->sym->return_type;
+//    }
+//}
 
 // Args --> Exp COMMA Args 
 void check_args(hash_node * fun_node, SyntaxTree* args) {
-    arg * fun_arg = fun_node->sym->args;
+    symbol * fun_arg = fun_node->sym->args;
     while (fun_arg) {
         if (args->child_num == 3) {
             if (fun_arg->type != args->child_ast[0]->type) {
@@ -285,14 +324,14 @@ void check_args(hash_node * fun_node, SyntaxTree* args) {
     }
 }
 
-int insert_symbol(char *name, int type, arg* args, int return_type) {
+int insert_symbol(char *name, int type, symbol* args, int return_type) {
     int hash;
     symbol * sym = (symbol *)malloc(sizeof(symbol));
     sym->name = (char *)malloc(sizeof(char));
     strcpy(sym->name, name);
     sym->type = type;
     sym->args = args;
-    if (type == FUN) {
+    if (type == FUN_TYPE) {
         sym->domain = GLOBAL;
         hash = BKDRHash(sym->name);
         sym->return_type = return_type;
@@ -311,20 +350,15 @@ int insert_symbol(char *name, int type, arg* args, int return_type) {
     return insert_hash(symboltable->table, symboltable->table_size, hash, sym);
 }
 
-hash_node * lookup(char *name, int type) {
+hash_node * lookup(char *name, int type, char *domain) {
     int hash;
-    if (type == FUN) {
+    if (type == FUN_TYPE) {
         hash = BKDRHash(name);
     } else {
-        //char *temp = (char *)malloc(sizeof(char) * (strlen(get_current_domain()) + 1 + strlen(name) + 1));
-        //strcat(temp, get_current_domain());
-        //strcat(temp, ".");
-        //strcat(temp, name);
-        char *temp = append_domain(name, get_current_domain());
+        char *temp = append_domain(name, domain);
         hash = BKDRHash(temp); 
         free(temp);
     }
-    char *domain = get_current_domain();
     hash_node *temp = lookup_hash(symboltable->table, symboltable->table_size, hash);
     return temp;
 }

@@ -123,19 +123,31 @@ FILE *IR, *ASM;
 
 int ir_var_number = 0;
 
+typedef struct _element_index {
+    int type;
+    int index;
+    struct _element_index * next;
+} element_index;
+
+element_index * head, tail;
+
 void traverse_ast(SyntaxTree *node);
-char * ir_bulid_fundec(SyntaxTree *node);
-char * ir_bulid_vardec(SyntaxTree *node);
+char * ir_build_fundec(SyntaxTree *node);
+char * ir_build_vardec(SyntaxTree *node);
 char * ir_build_while(SyntaxTree *node);
 char * ir_build_if(SyntaxTree *node);
 char * ir_build_exp(SyntaxTree *node);
-char * ir_build_assignop_left(SyntaxTree *node);
+char * ir_build_exp_addr(SyntaxTree *node);
 char * ir_build_args(SyntaxTree *node);
-char * ir_get_type_name(SyntaxTree *node);
-char * ir_get_return_type_name(int type);
+char * ir_build_para(hash_node *node);
+char * ir_get_type_name(int type);
 char * ir_build_stmt(SyntaxTree *node);
+char * ir_build(SyntaxTree *node);
+// handle array or struct
+char * ir_build_struct_array(SyntaxTree *node);
+element_index * get_element_index(SyntaxTree *node);
 int get_label();
-
+int get_index_in_struct(int type, char *name);
 char * get_var_name(char * domain);
 void reset_var_name();
 
