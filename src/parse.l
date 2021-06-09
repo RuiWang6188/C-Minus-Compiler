@@ -15,13 +15,13 @@
 %}
 digit  [0-9]
 digits [0-9]+
-letter [a-zA-Z]
-STRUCT struct
-RELOP  >|<|>=|<=|==|!=
+RELOP  ">" | "<" | ">=" | "<=" | "==" | "!="
 
-INT 0|[1-9]{digit}*
+CHAR  \'.\'
+INT 0 | [1-9]{digit}*
 FLOAT {digits}\.{digits}
-TYPE "int"|"float"
+BOOL "true" | "false"
+TYPE "int" | "float" | "boolean" | "char"
 
 LP \(
 RP \)
@@ -61,39 +61,40 @@ TAB \t|" "
 
 
 %%
-{INT}  {yylval.label_tree = create_ast("INT",yytext,0); return INT;}
-{FLOAT}  {yylval.label_tree = create_ast("FLOAT",yytext,0); return FLOAT;}   
+{CHAR} {}
+{INT}  {yylval.label_tree = new Node(yytext, "INT", 0); return INT;}
+{FLOAT}  {yylval.label_tree = new Node(yytext, "FLOAT", 0); return FLOAT;}   
+{BOOL} {}
 
-{STRUCT}   {yylval.label_tree = create_ast("STRUCT","",0); return STRUCT;}
-{TYPE}   {yylval.label_tree = create_ast("TYPE",yytext,0); return TYPE;}
+{TYPE}   {yylval.label_tree = new Node(yytext, "TYPE", 0); return TYPE;}
 
-{IF}   {yylval.label_tree = create_ast("IF","",0); return IF;}
-{ELSE}   {yylval.label_tree = create_ast("ELSE","",0); return ELSE;}
-{WHILE}   {yylval.label_tree = create_ast("WHILE","",0); return WHILE;}
-{RETURN}   {yylval.label_tree = create_ast("RETURN","",0); return RETURN;}
+{IF}   {yylval.label_tree = new Node("", "IF", 0); return IF;}
+{ELSE}   {yylval.label_tree = new Node("", "ELSE", 0); return ELSE;}
+{WHILE}   {yylval.label_tree = new Node("", "WHILE", 0); return WHILE;}
+{RETURN}   {yylval.label_tree = new Node("", "RETURN", 0); return RETURN;}
 
-{LP}   {yylval.label_tree = create_ast("LP","",0); return LP;}
-{RP}   {yylval.label_tree = create_ast("RP","",0); return RP;}
-{LB}   {yylval.label_tree = create_ast("LB","",0); return LB;}
-{RB}   {yylval.label_tree = create_ast("RB","",0); return RB;}
-{LC}   {yylval.label_tree = create_ast("LC","",0); return LC;}
-{RC}   {yylval.label_tree = create_ast("RC","",0); return RC;}
+{LP}   {yylval.label_tree = new Node("", "LP", 0); return LP;}
+{RP}   {yylval.label_tree = new Node("", "RP", 0); return RP;}
+{LB}   {yylval.label_tree = new Node("", "LB", 0); return LB;}
+{RB}   {yylval.label_tree = new Node("", "RB", 0); return RB;}
+{LC}   {yylval.label_tree = new Node("", "LC", 0); return LC;}
+{RC}   {yylval.label_tree = new Node("", "RC", 0); return RC;}
 
-{ID}  {yylval.label_tree = create_ast("ID",yytext,0); return ID;}
+{ID}  {yylval.label_tree = new Node(yytext, "ID", 0); return ID;}
 
-{SEMI}   {yylval.label_tree = create_ast("SEMI","",0); return SEMI;}
-{COMMA}   {yylval.label_tree = create_ast("COMMA","",0); return COMMA;}
-{ASSIGNOP}   {yylval.label_tree = create_ast("ASSIGNOP","=",0); return ASSIGNOP;}
-{RELOP}   {yylval.label_tree = create_ast("RELOP",yytext,0);; return RELOP;}
-{PLUS}   {yylval.label_tree = create_ast("PLUS","+",0); return PLUS;}
-{MINUS}   {yylval.label_tree = create_ast("MINUS","-",0); return MINUS;}
-{STAR}   {yylval.label_tree = create_ast("STAR","*",0); return STAR;}
-{DIV}   {yylval.label_tree = create_ast("DIV","/",0); return DIV;}
+{SEMI}   {yylval.label_tree = new Node("", "SEMI", 0); return SEMI;}
+{COMMA}   {yylval.label_tree = new Node("", "COMMA", 0); return COMMA;}
+{ASSIGNOP}   {yylval.label_tree = new Node("=", "ASSIGNOP", 0); return ASSIGNOP;}
+{RELOP}   {yylval.label_tree = new Node(yytext, "RELOP",0);; return RELOP;}
+{PLUS}   {yylval.label_tree = new Node("+", "PLUS", 0); return PLUS;}
+{MINUS}   {yylval.label_tree = new Node("-", "MINUS", 0); return MINUS;}
+{STAR}   {yylval.label_tree = new Node("*", "STAR", 0); return STAR;}
+{DIV}   {yylval.label_tree = new Node("/", "DIV", 0); return DIV;}
 
-{AND}   {yylval.label_tree = create_ast("AND","&&",0); return AND;}
-{OR}   {yylval.label_tree = create_ast("OR","||",0); return OR;}
-{DOT}   {yylval.label_tree = create_ast("DOT",".",0); return DOT;}
-{NOT}   {yylval.label_tree = create_ast("NOT","!",0); return NOT;}
+{AND}   {yylval.label_tree = new Node("&&", "AND", 0); return AND;}
+{OR}   {yylval.label_tree = new Node("||", "OR", 0); return OR;}
+{DOT}   {yylval.label_tree = new Node(".", "DOT", 0); return DOT;}
+{NOT}   {yylval.label_tree = new Node("!", "NOT", 0); return NOT;}
 
 {COMMENTBEGIN}    {
             int line=yylineno;
