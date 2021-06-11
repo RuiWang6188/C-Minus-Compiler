@@ -18,6 +18,7 @@ digits [0-9]+
 RELOP  ">" | "<" | ">=" | "<=" | "==" | "!="
 
 CHAR  \'.\'
+STRING \"{.}*\"
 INT 0 | [1-9]{digit}*
 FLOAT {digits}\.{digits}
 BOOL "true" | "false"
@@ -61,10 +62,11 @@ TAB \t|" "
 
 
 %%
-{CHAR} {}
+{CHAR} {yylval.label_tree = new Node(yytext, "CHAR", 0); return CHAR;}
 {INT}  {yylval.label_tree = new Node(yytext, "INT", 0); return INT;}
 {FLOAT}  {yylval.label_tree = new Node(yytext, "FLOAT", 0); return FLOAT;}   
-{BOOL} {}
+{BOOL} {yylval.label_tree = new Node(yytext, "BOOL", 0); return BOOL;}
+{STRING} {yylval.label_tree = new Node(yytext, "STRING", 0); return STRING;}
 
 {TYPE}   {yylval.label_tree = new Node(yytext, "TYPE", 0); return TYPE;}
 

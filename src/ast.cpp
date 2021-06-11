@@ -21,7 +21,6 @@ Node::Node(string nodeName, string nodeType, int childNum, ...) {
         node = va_arg(l, Node *);
         this->childNode[i] = node;
     }
-
     this->lineNo = this->childNode[0]->lineNo;
     va_end(l);
 } 
@@ -193,7 +192,7 @@ llvm::Value * Node::irBuildExp() {
         return builder.getInt32(stoi(*this->childNode[0]->nodeName));
     } 
     else if (this->childNode[0]->nodeType->compare("FLOAT") == 0) {
-        return builder.getInt32(stof(*this->childNode[0]->nodeName));
+        return llvm::ConstantFP::get(builder.getFloatTy(), llvm::APFloat(stof(*this->childNode[0]->nodeName)));
     }
     else if (this->childNode[0]->nodeType->compare("BOOL") == 0) {
         if (this->childNode[0]->nodeName->compare("true") == 0) {
@@ -203,18 +202,34 @@ llvm::Value * Node::irBuildExp() {
         }
     }
     else if (this->childNode[0]->nodeType->compare("CHAR") == 0) {
-        return builder.getInt8(this->childNode[0]->nodeName->at(0));
+        // char --> '$ch'
+        return builder.getInt8(this->childNode[0]->nodeName->at(1));
+    }
+    else if (this->childNode[0]->nodeType->compare("STRING") == 0) {
+        // string --> "$ch"
+        string str = this->childNode[0]->nodeName->substr(1, this->childNode[0]->nodeName->length() - 2);
+        return llvm::ConstantDataArray::getString(context, str);
+        //return builder.getInt8(this->childNode[0]->nodeName->at(1));
     }
     else if (this->childNode[0]->nodeType->compare("ID") == 0) {
         if (this->childNum == 1) {
-            return generator->findValue(*this->childNode[0]->nodeName);
+            // var value
+            return builder.CreateLoad(generator->findValue(*this->childNode[0]->nodeName), "tmpvar");
         }
+        // ID() function
+        // ID[] array or point
         else if (this->childNum == 3) {
-            llvm::Function *fun = generator->module->getFunction(*this->childNode[0]->nodeName);
-            if (fun == nullptr) {
-                cout<<"[ERROR] Funtion not defined: "<<*this->childNode[0]->nodeName<<endl;
+            if (this->childNode[1]->nodeType->compare("LP") == 0) {
+                llvm::Function *fun = generator->module->getFunction(*this->childNode[0]->nodeName);
+                if (fun == nullptr) {
+                    cout<<"[ERROR] Funtion not defined: "<<*this->childNode[0]->nodeName<<endl;
+                }
+                return builder.CreateCall(fun, nullptr, "calltmp");
             }
-            return builder.CreateCall(fun, nullptr, "calltmp");
+            else {
+                // var addr
+                return generator->findValue(*this->childNode[0]->nodeName);
+            }
         }
         else if (this->childNum == 4) {
             // ID LP Args RP
@@ -232,7 +247,8 @@ llvm::Value * Node::irBuildExp() {
                 vector<llvm::Value*> indexList;
                 indexList.push_back(builder.getInt32(0));
                 indexList.push_back(indexValue);
-                return builder.CreateInBoundsGEP(arrayValue, llvm::ArrayRef<llvm::Value*>(indexList));
+                // var value
+                return builder.CreateLoad(builder.CreateInBoundsGEP(arrayValue, llvm::ArrayRef<llvm::Value*>(indexList)), "tmpvar");
             }
         }
     }
@@ -240,10 +256,12 @@ llvm::Value * Node::irBuildExp() {
         return this->childNode[0]->irBuildExp();
     }
     else if (this->childNode[0]->nodeType->compare("MINUS") == 0) {
-        
+        return builder.CreateNeg(this->childNode[1]->irBuildExp(), "tmpNeg");
+        //int type = this->childNode[1]->getValueType();
+        //return type == TYPE_INT ? builder.CreateSub(builder.getInt32(0), this->childNode[1]->irBuildExp()) : builder.CreateFSub(llvm::ConstantFP::get(builder.getFloatTy(), llvm::APFloat(0.0)), this->childNode[1]->irBuildExp());
     }
     else if (this->childNode[0]->nodeType->compare("NOT") == 0) {
-        
+        builder.CreateNot(this->childNode[1]->irBuildExp(), "tmpNot");
     }
     // Exp op Exp
     else {
@@ -263,16 +281,16 @@ llvm::Value * Node::irBuildExp() {
             return this->irBuildRELOP();
         }
         else if (this->childNode[1]->nodeType->compare("PLUS") == 0) {
-            return type ? builder.CreateFAdd(left, right, "addtmpf") : builder.CreateAdd(left, right, "addtmpi");
+            return type == TYPE_FLOAT ? builder.CreateFAdd(left, right, "addtmpf") : builder.CreateAdd(left, right, "addtmpi");
         }
         else if (this->childNode[1]->nodeType->compare("MINUS") == 0) {
-            return type ? builder.CreateFSub(left, right, "subtmpf") : builder.CreateSub(left, right, "subtmpi");
+            return type == TYPE_FLOAT ? builder.CreateFSub(left, right, "subtmpf") : builder.CreateSub(left, right, "subtmpi");
         }
         else if (this->childNode[1]->nodeType->compare("STAR") == 0) {
-            return type ? builder.CreateFMul(left, right, "multmpf") : builder.CreateMul(left, right, "multmpi");
+            return type == TYPE_FLOAT ? builder.CreateFMul(left, right, "multmpf") : builder.CreateMul(left, right, "multmpi");
         }
         else if (this->childNode[1]->nodeType->compare("DIV") == 0) {
-            return type ? builder.CreateFDiv(left, right, "divtmpf") : builder.CreateSDiv(left, right, "divtmpi");
+            return type == TYPE_FLOAT ? builder.CreateFDiv(left, right, "divtmpf") : builder.CreateSDiv(left, right, "divtmpi");
         }
     }
     
@@ -354,8 +372,7 @@ llvm::Value * Node::irBuildVar() {
 
 // Specifier FunDec CompSt
 llvm::Value * Node::irBuildFun() {
-    vector<pair<string, llvm::Type*>> *params;
-    params = getParam();
+    vector<pair<string, llvm::Type*>> *params = getParam();
 
     vector<llvm::Type*> argTypes;
     for (auto it = params->begin(); it != params->end(); it ++) {
@@ -462,6 +479,66 @@ llvm::Value *Node::irBuildReturn() {
     auto returnInst = this->childNode[1]->irBuildExp();
     builder.CreateRet(returnInst);
 }
+
+llvm::Value *Node::irBuildPrintf() {
+    string formatStr = "";
+    vector<llvm::Value *> *args = getArgs();
+    for (auto & arg : *args) {
+        if (arg->getType() == builder.getInt32Ty()) {
+            formatStr += "%d";
+        }
+        else if (arg->getType() == builder.getInt8Ty()) {
+            formatStr += "%c";
+        }
+        else if (arg->getType() == builder.getInt1Ty()) {
+            formatStr += "%d";
+        }
+        else if (arg->getType() == builder.getFloatTy()) {
+            formatStr += "%f";
+        }
+        else {
+            throw logic_error("[ERROR]Invalid type to write.");
+        }
+    }
+    formatStr += "\n";
+    auto formatConst = llvm::ConstantDataArray::getString(context, formatStr.c_str());
+    auto formatStrVar = new llvm::GlobalVariable(*(generator->module), llvm::ArrayType::get(builder.getInt8Ty(), formatStr.size() + 1), true, llvm::GlobalValue::ExternalLinkage, formatConst, ".str");
+    auto zero = llvm::Constant::getNullValue(builder.getInt32Ty());
+    llvm::Constant* indices[] = {zero, zero};
+    auto varRef = llvm::ConstantExpr::getGetElementPtr(formatStrVar->getType()->getElementType(), formatStrVar, indices);
+    args->insert(args->begin(), varRef);
+    return builder.CreateCall(generator->print, *args, "print");
+}
+
+// Args --> Exp COMMA Args
+// Args --> Exp
+llvm::Value *Node::irBuildScanf() {
+    string formatStr = "";
+    vector<llvm::Value*> *args = getArgs();
+    llvm::Value *argAddr, *argValue;
+    //Just common variable
+    for (auto arg : *args) {
+        if (arg->getType()->getPointerElementType() == builder.getInt32Ty()) {
+            formatStr += "%d";
+        }
+        else if (arg->getType()->getPointerElementType() == builder.getInt8Ty()) {
+            formatStr += "%c";
+        }
+        else if (arg->getType()->getPointerElementType() == builder.getInt1Ty()) {
+            formatStr += "%d";
+        }
+        else if (arg->getType()->getPointerElementType() == builder.getFloatTy()) {
+            formatStr += "%f";
+        }
+        else {
+            throw logic_error("[ERROR]Invalid type to read.");
+        }
+    }
+    args->insert(args->begin(), builder.CreateGlobalStringPtr(formatStr));
+    return builder.CreateCall(generator->scan, *args, "scan");
+}
+
+
 
 llvm::AllocaInst *CreateEntryBlockAlloca(llvm::Function *TheFunction, llvm::StringRef VarName, llvm::Type* type) {
   llvm::IRBuilder<> TmpB(&TheFunction->getEntryBlock(), TheFunction->getEntryBlock().begin());

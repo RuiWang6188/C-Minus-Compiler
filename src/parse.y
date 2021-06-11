@@ -18,6 +18,7 @@
 %token <label_tree> FLOAT
 %token <label_tree> CHAR
 %token <label_tree> BOOL
+%token <label_tree> STRING
 %token <label_tree> ID
 %token <label_tree> SEMI
 %token <label_tree> COMMA
@@ -47,7 +48,7 @@
 %left LP RP LB RB
 
 %type <label_tree> Program ExtDefList ExtDef ExtDecList Specifier
-%type <label_tree> VarDec FunDec VarList ParamDec CompSt StmtList Stmt DefList Def DecList Dec Exp Args
+%type <label_tree> VarDec FunDec VarList ParamDec CompSt StmtList Stmt DefList Def DecList Exp Args
 
 %%
 Program: 
@@ -359,9 +360,14 @@ Exp:
         $$ = new Node("", "Exp", 1, $1);
         $$->setValueType(TYPE_BOOL);
     }
+    // '$ch'
     | CHAR {
         $$ = new Node("", "Exp", 1, $1);
         $$->setValueType(TYPE_CHAR);
+    }
+    | STRING {
+        $$ = new Node("", "Exp", 1, $1);
+        $$->setValueType(TYPE_CHAR_ARRAY);
     }
     | Exp ASSIGNOP error SEMI {
         if(mistakeRecord[@3.first_line-1] == 0){

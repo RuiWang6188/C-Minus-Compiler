@@ -24,20 +24,20 @@ llvm::Value* codeGen::findValue(const std::string & name) {
     return result;
 }
 
-llvm::Function* codeGen::createPrintf()
+llvm::Function* codeGen::createPrint()
 {
     std::vector<llvm::Type*> arg_types;
     arg_types.push_back(builder.getInt8PtrTy());
     auto printf_type = llvm::FunctionType::get(builder.getInt32Ty(), llvm::makeArrayRef(arg_types), true);
-    auto func = llvm::Function::Create(printf_type, llvm::Function::ExternalLinkage, llvm::Twine("printf"), module);
+    auto func = llvm::Function::Create(printf_type, llvm::Function::ExternalLinkage, llvm::Twine("print"), module);
     func->setCallingConv(llvm::CallingConv::C);
     return func;
 }
 
-llvm::Function* codeGen::createScanf()
+llvm::Function* codeGen::createScan()
 {
     auto scanf_type = llvm::FunctionType::get(builder.getInt32Ty(), true);
-    auto func = llvm::Function::Create(scanf_type, llvm::Function::ExternalLinkage, llvm::Twine("scanf"), module);
+    auto func = llvm::Function::Create(scanf_type, llvm::Function::ExternalLinkage, llvm::Twine("scan"), module);
     func->setCallingConv(llvm::CallingConv::C);
     return func;
 }

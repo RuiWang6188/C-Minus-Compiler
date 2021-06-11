@@ -50,6 +50,8 @@ public:
     llvm::Value *irBuildReturn();
     llvm::Value *irBuildCompSt();
     llvm::Value *irBuildRELOP();
+    llvm::Value *irBuildPrintf();
+    llvm::Value *irBuildScanf();
     int getValueType();
     int getValueType(Node *node);
     void setValueType(int type);
