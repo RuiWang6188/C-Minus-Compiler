@@ -42,8 +42,15 @@ llvm::Function* codeGen::createScan()
     return func;
 }
 
+void codeGen::generate(Node* root) {
+    root->irBuild();
+    this->module->dump();
+}
+
 codeGen::codeGen(/* args */) {
     this->module = new llvm::Module("main", context);
+    this->print = this->createPrint();
+    this->scan = this->createScan();
 }
 
 codeGen::~codeGen() {

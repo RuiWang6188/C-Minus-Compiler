@@ -3,16 +3,16 @@
     #include <stdio.h>
     #include "lex.yy.c"
     #include "ast.h"
-    #include "symbol_table.h"
+    #include "type.h"
     void yyerror(char* msg);
-    extern SyntaxTree* ROOT;
+    extern Node* root;
     int mistakeRecord[4096]={0};
 %}
 
 /*declared types*/
 %union
 {
-    struct SYNTAXTREE* label_tree;
+    struct Node* label_tree;
 }
 %token <label_tree> INT
 %token <label_tree> FLOAT
@@ -54,7 +54,7 @@
 Program: 
 	ExtDefList {
 		$$ = new Node("", "Program", 1, $1);
-		ROOT = $$;
+		root = $$;
 	};
 
 ExtDefList: 
@@ -188,6 +188,9 @@ Stmt:
     | RETURN Exp SEMI {
 		$$ = new Node("", "Stmt", 3, $1, $2, $3);
 	}
+    | RETURN SEMI {
+        $$ = new Node("", "Stmt", 2, $1, $2);
+    }
     | IF LP Exp RP Stmt %prec LOWER_THAN_ELSE {
 		$$ = new Node("", "Stmt", 5, $1, $2, $3, $4, $5);
 	}

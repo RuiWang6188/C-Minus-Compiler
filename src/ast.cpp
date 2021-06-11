@@ -185,6 +185,10 @@ llvm::Value * Node::irBuild() {
     } else if (this->nodeType->compare("Def") != 0) {
         return this->irBuildVar();
     }
+    for ( int i = 0; i < this->childNum; i++) {
+        this->childNode[i]->irBuild();
+    }
+    return NULL;
 } 
 
 llvm::Value * Node::irBuildExp() {
@@ -396,6 +400,7 @@ llvm::Value * Node::irBuildFun() {
     //Pop back
     generator->popFunction();
     builder.SetInsertPoint(&(generator->getCurFunction())->getBasicBlockList().back());
+        
     return function;
 }
 
@@ -475,9 +480,13 @@ llvm::Value *Node::irBuildIf() {
 }
 
 // RETURN Exp SEMI
+// RETURN SEMI
 llvm::Value *Node::irBuildReturn() {
-    auto returnInst = this->childNode[1]->irBuildExp();
-    builder.CreateRet(returnInst);
+    if (this->childNum == 3) {
+        auto returnInst = this->childNode[1]->irBuildExp();
+        return builder.CreateRet(returnInst);
+    }
+    return builder.CreateRetVoid();
 }
 
 llvm::Value *Node::irBuildPrintf() {

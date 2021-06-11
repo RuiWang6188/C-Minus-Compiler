@@ -65,6 +65,7 @@ public:
     ~Node();
 };
 
+Node *root;
 
 
 #endif

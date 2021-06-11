@@ -45,6 +45,7 @@ public:
     llvm::Value* findValue(const std::string & name);
     llvm::Function* createPrint();
     llvm::Function* createScan();
+    void generate(Node *root);
     codeGen(/* args */);
     ~codeGen();
 };
