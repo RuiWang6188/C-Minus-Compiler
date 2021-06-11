@@ -288,61 +288,80 @@ DecList:
 Exp:  
 	Exp ASSIGNOP Exp {
 		$$ = new Node("", "Exp", 3, $1, $2, $3);
+        $$->setValueType($3->getValueType());
 	}
     | Exp AND Exp {
 		$$ = new Node("", "Exp", 3, $1, $2, $3);
+        $$->setValueType($1->getValueType());
 	}
     | Exp OR Exp {
         $$ = new Node("", "Exp", 3, $1, $2, $3);
+        $$->setValueType($1->getValueType());
     }
     | Exp RELOP Exp {
         $$ = new Node("", "Exp", 3, $1, $2, $3);
+        $$->setValueType($1->getValueType());
     }
     | Exp PLUS Exp {
         $$ = new Node("", "Exp", 3, $1, $2, $3);
+        $$->setValueType($1->getValueType());
     }
     | Exp MINUS Exp {
         $$ = new Node("", "Exp", 3, $1, $2, $3);
+        $$->setValueType($1->getValueType());
     }
     | Exp STAR Exp {
         $$ = new Node("", "Exp", 3, $1, $2, $3);
+        $$->setValueType($1->getValueType());
     }
     | Exp DIV Exp {
         $$ = new Node("", "Exp", 3, $1, $2, $3);
+        $$->setValueType($1->getValueType());
     }
     | LP Exp RP {
         $$ = new Node("", "Exp", 3, $1, $2, $3);
+        $$->setValueType($2->getValueType());
     }
     | MINUS Exp {
         $$ = new Node("", "Exp", 2, $1, $2);
+        $$->setValueType($2->getValueType());
     }
     | NOT Exp {
         $$ = new Node("", "Exp", 2, $1, $2);
+        $$->setValueType(TYPE_BOOL);
     }
     | ID LP Args RP {
         $$ = new Node("", "Exp", 4, $1, $2, $3, $4);
+        $$->setValueType($1->getValueType());
     }
     | ID LP RP {
         $$ = new Node("", "Exp", 3, $1, $2, $3);
+        $$->setValueType($1->getValueType());
     }
     // 
     | ID LB Exp RB {
         $$ = new Node("", "Exp", 4, $1, $2, $3, $4);
+        $$->setValueType($1->getValueType() - ARRAY);
     }
     | ID {
         $$ = new Node("", "Exp", 1, $1);
+        $$->setValueType($1->getValueType());
     }
     | INT {
         $$ = new Node("", "Exp", 1, $1);
+        $$->setValueType(TYPE_INT);
     }
     | FLOAT {
         $$ = new Node("", "Exp", 1, $1);
+        $$->setValueType(TYPE_FLOAT);
     }
     | BOOL {
-
+        $$ = new Node("", "Exp", 1, $1);
+        $$->setValueType(TYPE_BOOL);
     }
     | CHAR {
-        
+        $$ = new Node("", "Exp", 1, $1);
+        $$->setValueType(TYPE_CHAR);
     }
     | Exp ASSIGNOP error SEMI {
         if(mistakeRecord[@3.first_line-1] == 0){

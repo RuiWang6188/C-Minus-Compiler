@@ -18,7 +18,8 @@
 #include <map>
 #include <ostream>
 
-#include "symbol_table.h"
+#include "type.h"
+#include "code_gen.h"
 
 using namespace std;
 
@@ -40,13 +41,22 @@ public:
 
     void semanticAnalysis();
     llvm::Value *irBuild();
+    llvm::Value *irBuildExp();
+    llvm::Value *irBuildFun();
+    llvm::Value *irBuildVar();
+    llvm::Value *irBuildStmt();
+    llvm::Value *irBuildWhile();
+    llvm::Value *irBuildIf();
+    llvm::Value *irBuildReturn();
+    llvm::Value *irBuildCompSt();
+    llvm::Value *irBuildRELOP();
     int getValueType();
     int getValueType(Node *node);
-    bool insertSymbol();
-    bool insertFunSymbol();
+    void setValueType(int type);
+    llvm::Type* getLlvmType(int type, int arraySize); 
     vector<pair<string, int>> *getNameList();
-    vector<pair<string, int>> *getArgs();
-    vector<pair<string, int>> *getParam();
+    vector<llvm::Value *> *getArgs();
+    vector<pair<string, llvm::Type*>> *getParam();
     Node(string nodeName, string nodeType, int lineNo);
     Node(string nodeName, string nodeType, int childNum, ...);
 
