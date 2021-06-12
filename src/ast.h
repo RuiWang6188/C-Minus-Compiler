@@ -19,7 +19,6 @@
 #include <ostream>
 
 #include "type.h"
-#include "code_gen.h"
 
 using namespace std;
 
@@ -59,13 +58,12 @@ public:
     vector<pair<string, int>> *getNameList();
     vector<llvm::Value *> *getArgs();
     vector<pair<string, llvm::Type*>> *getParam();
-    Node(string nodeName, string nodeType, int lineNo);
+    Node(char * nodeName, string nodeType, int lineNo);
     Node(string nodeName, string nodeType, int childNum, ...);
 
     ~Node();
 };
 
-Node *root;
-
+llvm::AllocaInst *CreateEntryBlockAlloca(llvm::Function *TheFunction, llvm::StringRef VarName, llvm::Type* type);
 
 #endif

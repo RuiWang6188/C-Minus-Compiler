@@ -1,14 +1,16 @@
 #include "type.h"
 #include "code_gen.h"
 #include "ast.h"
+#include "grammar.hpp"
 
+extern Node *ROOT;
+extern codeGen *generator;
 extern int yyparse();
-extern Node *root;
 
 int main() {
     yyparse();
     generator = new codeGen();
-    generator->generate(root);
+    generator->generate(ROOT);
 
     return 0;
 }

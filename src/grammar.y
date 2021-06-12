@@ -1,12 +1,15 @@
 
 %{
     #include <stdio.h>
-    #include "lex.yy.c"
     #include "ast.h"
     #include "type.h"
-    void yyerror(char* msg);
-    extern Node* root;
+    int yylex(void);
     int mistakeRecord[4096]={0};
+    int mistake = 0;
+    extern Node *ROOT;
+    void yyerror (char const *s) {
+        fprintf (stderr, "%s\n", s);
+    }
 %}
 
 /*declared types*/
@@ -54,7 +57,7 @@
 Program: 
 	ExtDefList {
 		$$ = new Node("", "Program", 1, $1);
-		root = $$;
+		ROOT = $$;
 	};
 
 ExtDefList: 
@@ -62,7 +65,7 @@ ExtDefList:
 		$$ = new Node("", "ExtDefList", 2, $1, $2);
 	}
     | %empty {
-		$$ = NULL;
+		$$ = nullptr;
 	}    
     ;
 
@@ -100,7 +103,7 @@ VarDec:
 	}
     // used in function definition
     | ID LB RB {
-        $$ = new Node("", "VarDec", 3, $1, $2, $4);
+        $$ = new Node("", "VarDec", 3, $1, $2, $3);
 	}
     | ID LB error RB {
         if(mistakeRecord[@3.first_line-1] == 0){
@@ -171,7 +174,7 @@ CompSt:
 
 StmtList:  
 	%empty {
-		$$ = NULL;
+		$$ = nullptr;
 	}
     | Stmt StmtList {
 		$$ = new Node("", "CompSt", 2, $1, $2);
@@ -246,7 +249,7 @@ Stmt:
 
 DefList:  
 	%empty {
-		$$ = NULL;
+		$$ = nullptr;
 	}
     | Def DefList {
 		$$ = new Node("", "DefList", 2, $1, $2);
@@ -285,7 +288,7 @@ DecList:
 		$$ = new Node("", "DecList", 1, $1);
 	}
     | VarDec COMMA DecList {
-		$$ = new Node("", "DecList", $1, $2, $3);
+		$$ = new Node("", "DecList", 3, $1, $2, $3);
 	}
     ;
 
@@ -454,7 +457,3 @@ Args:
     ;
 
 %%
-void yyerror(const char *s) { 
-    ;
-}
-

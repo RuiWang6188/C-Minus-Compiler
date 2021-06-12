@@ -9,14 +9,12 @@ OBJS = main.o grammar.o lexical.o code_gen.o ast.o\
 
 .PHONY: target clean test 
 
-code_gen.cpp: code_gen.h ast.h 
+code_gen.cpp: code_gen.h ast.h type.h
 
-grammar.cpp: grammar.y
+grammar.cpp: grammar.y ast.h
 	bison -d -o grammar.cpp grammar.y 
 
-grammar.hpp: grammar.cpp
-
-lexical.cpp: lexical.l grammar.hpp
+lexical.cpp: lexical.l grammar.hpp code_gen.h ast.h
 	flex -o lexical.cpp lexical.l 
 
 %.o: %.cpp ast.h type.h code_gen.h

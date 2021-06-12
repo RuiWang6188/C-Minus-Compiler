@@ -1,5 +1,7 @@
 #include "code_gen.h"
 
+codeGen *generator;
+
 llvm::Function* codeGen::getCurFunction() {
     return funStack.top();
 }
@@ -44,7 +46,7 @@ llvm::Function* codeGen::createScan()
 
 void codeGen::generate(Node* root) {
     root->irBuild();
-    this->module->dump();
+    this->module->print(llvm::errs(), nullptr);
 }
 
 codeGen::codeGen(/* args */) {

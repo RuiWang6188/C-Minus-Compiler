@@ -29,6 +29,9 @@
 #include <llvm/Support/DynamicLibrary.h>
 #include <llvm/Target/TargetMachine.h>
 #include "ast.h"
+#include "type.h"
+
+using namespace std;
 
 static llvm::LLVMContext context;
 static llvm::IRBuilder<> builder(context);
@@ -49,8 +52,5 @@ public:
     codeGen(/* args */);
     ~codeGen();
 };
-
-
-codeGen *generator;
 
 #endif

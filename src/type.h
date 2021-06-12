@@ -1,6 +1,7 @@
 #ifndef _TYPE_H_
 #define _TYPE_H_
 
+#define VOID -1
 #define VAR 0
 #define ARRAY 1
 
