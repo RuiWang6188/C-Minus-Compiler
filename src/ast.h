@@ -61,7 +61,7 @@ public:
     vector<pair<string, llvm::Type*>> *getParam();
     Node(char * nodeName, string nodeType, int lineNo);
     Node(string nodeName, string nodeType, int childNum, ...);
-
+    void displayAST(Node* root, int indented);
     ~Node();
 };
 

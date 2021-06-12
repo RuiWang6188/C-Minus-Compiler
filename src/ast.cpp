@@ -32,6 +32,36 @@ Node::Node(string nodeName, string nodeType, int childNum, ...) {
     cout<<nodeName<<" "<<nodeType<<endl;
 } 
 
+void Node::displayAST(Node* root, int indented){
+    if(root){
+        for(int i = 0; i < indented; i++)
+            printf("  ");
+        printf("%s",root->nodeType);
+        
+        if(strcmp(root->nodeType,"ID")==0)
+            printf(": %s",root->nodeName);
+        else if(strcmp(root->nodeType,"TYPE")==0)
+            printf(": %s",root->nodeName);
+        else if(strcmp(root->nodeType,"INT")==0)
+            printf(": %d",atoi(root->nodeName));   
+        else if(strcmp(root->nodeType,"FLOAT")==0)
+            printf(": %f",atof(root->nodeName));
+        else if(strcmp(root->nodeType,"CHAR")==0)
+            printf(": %s",root->nodeName); 
+        else if(strcmp(root->nodeType,"STRING")==0)
+            printf(": %s",root->nodeName);
+        else if(strcmp(root->nodeType,"BOOL")==0)
+            printf(": %d",atoi(root->nodeName));   
+        else
+            printf(" (%d)",root->line_no);
+
+        printf("\n");
+        //printf("%d\n",root->childnum);
+        for(int i = 0; i < root->childNum; i++)
+            print_ast(root->childNode[i],indented+1);
+    }
+}
+
 void Node::setValueType(int type) {
     this->valueType = type;
 }
