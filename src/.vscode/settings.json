@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.asm": "asm-collection",
+        "__bit_reference": "cpp",
+        "algorithm": "cpp"
+    }
+}
