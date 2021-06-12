@@ -19,27 +19,27 @@ llvm::Value* codeGen::findValue(const std::string & name) {
     if (result != nullptr) {
         return result;
     }
-    result = module->getGlobalVariable(name);
+    result = module->getGlobalVariable(name, true);
     if (result == nullptr) {
         cout<<"[ERROR]Undeclared variable: " << name <<endl;
     }
     return result;
 }
 
-llvm::Function* codeGen::createPrint()
+llvm::Function* codeGen::createPrintf()
 {
     std::vector<llvm::Type*> arg_types;
     arg_types.push_back(builder.getInt8PtrTy());
     auto printf_type = llvm::FunctionType::get(builder.getInt32Ty(), llvm::makeArrayRef(arg_types), true);
-    auto func = llvm::Function::Create(printf_type, llvm::Function::ExternalLinkage, llvm::Twine("print"), module);
+    auto func = llvm::Function::Create(printf_type, llvm::Function::ExternalLinkage, llvm::Twine("printf"), this->module);
     func->setCallingConv(llvm::CallingConv::C);
     return func;
 }
 
-llvm::Function* codeGen::createScan()
+llvm::Function* codeGen::createScanf()
 {
     auto scanf_type = llvm::FunctionType::get(builder.getInt32Ty(), true);
-    auto func = llvm::Function::Create(scanf_type, llvm::Function::ExternalLinkage, llvm::Twine("scan"), module);
+    auto func = llvm::Function::Create(scanf_type, llvm::Function::ExternalLinkage, llvm::Twine("scanf"), this->module);
     func->setCallingConv(llvm::CallingConv::C);
     return func;
 }
@@ -51,8 +51,8 @@ void codeGen::generate(Node* root) {
 
 codeGen::codeGen(/* args */) {
     this->module = new llvm::Module("main", context);
-    this->print = this->createPrint();
-    this->scan = this->createScan();
+    this->printf = this->createPrintf();
+    this->scanf = this->createScanf();
 }
 
 codeGen::~codeGen() {

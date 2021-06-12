@@ -39,15 +39,15 @@ static llvm::IRBuilder<> builder(context);
 class codeGen {
 public:
     llvm::Module *module;
-    llvm::Function *print, *scan;
+    llvm::Function *printf, *scanf;
     stack<llvm::Function*> funStack;
 
     llvm::Function* getCurFunction();
     void pushFunction(llvm::Function* func);
     void popFunction();
     llvm::Value* findValue(const std::string & name);
-    llvm::Function* createPrint();
-    llvm::Function* createScan();
+    llvm::Function* createPrintf();
+    llvm::Function* createScanf();
     void generate(Node *root);
     codeGen(/* args */);
     ~codeGen();
