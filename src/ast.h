@@ -61,6 +61,8 @@ public:
     vector<pair<string, llvm::Type*>> *getParam();
     Node(string nodeName, string nodeType, int lineNo);
     Node(string nodeName, string nodeType, int childNum, ...);
+    displayAST(Node* root, int count);
+
 
     ~Node();
 };

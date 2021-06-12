@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "*.asm": "asm-collection",
+        "iosfwd": "c"
+    }
+}

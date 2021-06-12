@@ -1,4 +1,5 @@
 #include "ast.h"
+extern int yylineno;
 
 Node::Node(string nodeName, string nodeType, int lineNo) {
     this->nodeName = new string(nodeName);
@@ -24,6 +25,35 @@ Node::Node(string nodeName, string nodeType, int childNum, ...) {
     this->lineNo = this->childNode[0]->lineNo;
     va_end(l);
 } 
+
+Node::displayAST(Node* root, int indented){
+    if(root){
+        for(int i = 0; i < indented; i++)
+            printf("  ");
+        printf("%s",root->nodeType);
+        
+        // if it is a terminal
+        switch(root->nodeType){
+            case "ID": 
+            case "TYPE":  
+                printf(": %s",root->nodeName);
+                break;
+            case "INT":
+                printf(": %d",atoi(root->nodeName));
+                break;
+            case "FLOAT":
+                printf(": %d",atoi(root->nodeName));
+                break;
+            default:
+                printf(" (%d)",root->lineNo);
+                break;
+
+        printf("\n");
+        //printf("%d\n",root->childnum);
+        for(int i = 0; i < root->childNum; i++)
+            displayAST(root->childNode[i],indented+1);
+    }
+}
 
 int Node::getValueType() {
     return getValueType(this);
