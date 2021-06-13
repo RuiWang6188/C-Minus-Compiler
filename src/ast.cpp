@@ -346,6 +346,9 @@ llvm::Value * Node::irBuildExp() {
                 if (this->childNode[0]->nodeName->compare("scan") == 0) {
                     return this->irBuildScan();
                 }
+                if (this->childNode[0]->nodeName->compare("scanf") == 0) {
+                    throw logic_error("ERROR] Funtion not defined: " + *this->childNode[0]->nodeName);
+                }
                 llvm::Function *fun = generator->module->getFunction(*this->childNode[0]->nodeName);
                 if (fun == nullptr) {
                     throw logic_error("ERROR] Funtion not defined: " + *this->childNode[0]->nodeName);
