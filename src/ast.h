@@ -50,6 +50,7 @@ public:
     llvm::Value *irBuildCompSt();
     llvm::Value *irBuildRELOP();
     llvm::Value *irBuildPrint();
+    llvm::Value *irBuildPrintf();
     llvm::Value *irBuildScan();
     llvm::Value *irBuildAddr();
     int getValueType();

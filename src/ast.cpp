@@ -340,6 +340,9 @@ llvm::Value * Node::irBuildExp() {
                 if (this->childNode[0]->nodeName->compare("print") == 0) {
                     return this->irBuildPrint();
                 }
+                if (this->childNode[0]->nodeName->compare("printf") == 0) {
+                    return this->irBuildPrintf();
+                }
                 if (this->childNode[0]->nodeName->compare("scan") == 0) {
                     return this->irBuildScan();
                 }
@@ -647,6 +650,11 @@ llvm::Value *Node::irBuildReturn() {
         return builder.CreateRet(returnInst);
     }
     return builder.CreateRetVoid();
+}
+
+llvm::Value *Node::irBuildPrintf() {
+    vector<llvm::Value *> *args = this->childNode[2]->getArgs();
+    return builder.CreateCall(generator->printf, *args, "printf");
 }
 
 // Exp --> ID LP Args RP
