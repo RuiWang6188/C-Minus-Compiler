@@ -3,6 +3,7 @@
 #include <cstdarg>
 
 Node *ROOT;
+stack<llvm::BasicBlock *> GlobalAfterBB;
 extern codeGen *generator;
 
 Node::Node(char * nodeName, string nodeType, int lineNo) {
@@ -273,6 +274,32 @@ llvm::Value * Node::irBuildAddr() {
     return NULL;
 }
 
+llvm::Instruction::CastOps Node::getCastInst(llvm::Type* src, llvm::Type* dst) {
+    if (src == llvm::Type::getFloatTy(context) && dst == llvm::Type::getInt32Ty(context)) {
+        return llvm::Instruction::FPToSI;
+    }
+    else if (src == llvm::Type::getInt32Ty(context) && dst == llvm::Type::getFloatTy(context)) {
+        return llvm::Instruction::SIToFP;
+    }
+    else if (src == llvm::Type::getInt8Ty(context) && dst == llvm::Type::getFloatTy(context)) {
+        return llvm::Instruction::UIToFP;
+    }
+    else if (src == llvm::Type::getInt8Ty(context) && dst == llvm::Type::getInt32Ty(context)) {
+        return llvm::Instruction::ZExt;
+    }
+    else if (src == llvm::Type::getInt32Ty(context) && dst == llvm::Type::getInt8Ty(context)) {
+        return llvm::Instruction::Trunc;
+    }
+    else {
+        throw logic_error("[ERROR] Wrong typecast");
+    }
+}
+
+llvm::Value *Node::typeCast(llvm::Value* src, llvm::Type* dst) {
+    llvm::Instruction::CastOps op = getCastInst(src->getType(), dst);
+    return builder.CreateCast(op, src, dst, "tmptypecast");
+}
+
 llvm::Value * Node::irBuildExp() {
     #ifdef DEBUG
     cout<<"irBuildExp: "<<*this->nodeType<<" "<<*this->nodeName<<endl;
@@ -292,7 +319,33 @@ llvm::Value * Node::irBuildExp() {
     }
     else if (this->childNode[0]->nodeType->compare("CHAR") == 0) {
         // char --> '$ch'
-        return builder.getInt8(this->childNode[0]->nodeName->at(1));
+        if (this->childNode[0]->nodeName->size() == 3)
+            return builder.getInt8(this->childNode[0]->nodeName->at(1));
+        else {
+            if (this->childNode[0]->nodeName->compare("'\\n'") == 0) {
+                return builder.getInt8('\n');
+            } else if (this->childNode[0]->nodeName->compare("'\\\\'") == 0){
+                return builder.getInt8('\\');
+            } else if (this->childNode[0]->nodeName->compare("'\\a'") == 0){
+                return builder.getInt8('\a');
+            } else if (this->childNode[0]->nodeName->compare("'\\b'") == 0){
+                return builder.getInt8('\b');
+            } else if (this->childNode[0]->nodeName->compare("'\\f'") == 0){
+                return builder.getInt8('\f');
+            } else if (this->childNode[0]->nodeName->compare("'\\t'") == 0){
+                return builder.getInt8('\t');
+            } else if (this->childNode[0]->nodeName->compare("'\\v'") == 0){
+                return builder.getInt8('\v');
+            } else if (this->childNode[0]->nodeName->compare("'\\''") == 0){
+                return builder.getInt8('\'');
+            } else if (this->childNode[0]->nodeName->compare("'\\\"'") == 0){
+                return builder.getInt8('\"');
+            } else if (this->childNode[0]->nodeName->compare("'\\0'") == 0){
+                return builder.getInt8('\0');
+            } else {
+                throw logic_error("[ERROR] char not defined: " + *this->childNode[0]->nodeName);
+            }
+        }
     }
     else if (this->childNode[0]->nodeType->compare("STRING") == 0) {
         // string --> "$ch"
@@ -325,7 +378,7 @@ llvm::Value * Node::irBuildExp() {
             if (this->childNode[1]->nodeType->compare("LP") == 0) {
                 llvm::Function *fun = generator->module->getFunction(*this->childNode[0]->nodeName);
                 if (fun == nullptr) {
-                    throw logic_error("ERROR] Funtion not defined: " + *this->childNode[0]->nodeName);
+                    throw logic_error("[ERROR] Funtion not defined: " + *this->childNode[0]->nodeName);
                 }
                 return builder.CreateCall(fun, nullptr, "calltmp");
             }
@@ -347,11 +400,11 @@ llvm::Value * Node::irBuildExp() {
                     return this->irBuildScan();
                 }
                 if (this->childNode[0]->nodeName->compare("scanf") == 0) {
-                    throw logic_error("ERROR] Funtion not defined: " + *this->childNode[0]->nodeName);
+                    throw logic_error("[ERROR] Funtion not defined: " + *this->childNode[0]->nodeName);
                 }
                 llvm::Function *fun = generator->module->getFunction(*this->childNode[0]->nodeName);
                 if (fun == nullptr) {
-                    throw logic_error("ERROR] Funtion not defined: " + *this->childNode[0]->nodeName);
+                    throw logic_error("[ERROR] Funtion not defined: " + *this->childNode[0]->nodeName);
                 }
                 vector<llvm::Value*> *args = this->childNode[2]->getArgs();
                 return builder.CreateCall(fun, *args, "calltmp");
@@ -359,6 +412,9 @@ llvm::Value * Node::irBuildExp() {
             else {
                 llvm::Value * arrayValue = generator->findValue(*this->childNode[0]->nodeName);
                 llvm::Value * indexValue = this->childNode[2]->irBuildExp();
+                if (indexValue->getType() != llvm::Type::getInt32Ty(context)) {
+                    indexValue = this->typeCast(indexValue, llvm::Type::getInt32Ty(context));
+                }
                 vector<llvm::Value*> indexList;
                 indexList.push_back(builder.getInt32(0));
                 indexList.push_back(indexValue);
@@ -378,12 +434,21 @@ llvm::Value * Node::irBuildExp() {
         //return type == TYPE_INT ? builder.CreateSub(builder.getInt32(0), this->childNode[1]->irBuildExp()) : builder.CreateFSub(llvm::ConstantFP::get(builder.getFloatTy(), llvm::APFloat(0.0)), this->childNode[1]->irBuildExp());
     }
     else if (this->childNode[0]->nodeType->compare("NOT") == 0) {
-        return builder.CreateNot(this->childNode[1]->irBuildExp(), "tmpNot");
+        llvm::Value * tmp = this->childNode[1]->irBuildExp();
+        if (tmp->getType() != llvm::Type::getInt1Ty(context)) {
+            throw logic_error("cannot use types other than bool in ! Exp");
+        }
+        return builder.CreateNot(tmp, "tmpNot");
     }
     // Exp op Exp
     else {
         if (this->childNode[1]->nodeType->compare("ASSIGNOP") == 0) {
-            return builder.CreateStore(this->childNode[2]->irBuildExp(), this->childNode[0]->irBuildAddr());
+            llvm::Value *left = this->childNode[0]->irBuildAddr();
+            llvm::Value *right = this->childNode[2]->irBuildExp();
+            if (right->getType() != left->getType()->getPointerElementType()) {
+                right = this->typeCast(right, left->getType()->getPointerElementType());
+            }
+            return builder.CreateStore(right, left);
         }
         else if (this->childNode[1]->nodeType->compare("RELOP") == 0) {
             return this->irBuildRELOP();
@@ -392,22 +457,47 @@ llvm::Value * Node::irBuildExp() {
             llvm::Value *left = this->childNode[0]->irBuildExp();
             llvm::Value *right = this->childNode[2]->irBuildExp();
             if (this->childNode[1]->nodeType->compare("AND") == 0) {
+                if (left->getType() != llvm::Type::getInt1Ty(context) || right->getType() != llvm::Type::getInt1Ty(context)) {
+                    throw logic_error("cannot use types other than bool in and exp");
+                }
                 return builder.CreateAnd(left, right, "tmpAnd");
             }
             else if (this->childNode[1]->nodeType->compare("OR") == 0) {
+                if (left->getType() != llvm::Type::getInt1Ty(context) || right->getType() != llvm::Type::getInt1Ty(context)) {
+                    throw logic_error("cannot use types other than bool in or exp");
+                }
                 return builder.CreateOr(left, right, "tmpOR");
             }
-            else if (this->childNode[1]->nodeType->compare("PLUS") == 0) {
-                return (left->getType() == llvm::Type::getFloatTy(context)) ? builder.CreateFAdd(left, right, "addtmpf") : builder.CreateAdd(left, right, "addtmpi");
-            }
-            else if (this->childNode[1]->nodeType->compare("MINUS") == 0) {
-                return (left->getType() == llvm::Type::getFloatTy(context)) ? builder.CreateFSub(left, right, "subtmpf") : builder.CreateSub(left, right, "subtmpi");
-            }
-            else if (this->childNode[1]->nodeType->compare("STAR") == 0) {
-                return (left->getType() == llvm::Type::getFloatTy(context)) ? builder.CreateFMul(left, right, "multmpf") : builder.CreateMul(left, right, "multmpi");
-            }
-            else if (this->childNode[1]->nodeType->compare("DIV") == 0) {
-                return (left->getType() == llvm::Type::getFloatTy(context)) ? builder.CreateFDiv(left, right, "divtmpf") : builder.CreateSDiv(left, right, "divtmpi");
+            else {
+                if (left->getType() != right->getType()) {
+                    if (left->getType() == llvm::Type::getFloatTy(context)) {
+                        right = this->typeCast(right, llvm::Type::getFloatTy(context));
+                    } else {
+                        if (right->getType() == llvm::Type::getFloatTy(context)) {
+                            left = this->typeCast(left, llvm::Type::getFloatTy(context));
+                        } else {
+                            if (left->getType() == llvm::Type::getInt32Ty(context)) {
+                                right = this->typeCast(right, llvm::Type::getInt32Ty(context));
+                            } else if(right->getType() == llvm::Type::getInt32Ty(context)) {
+                                left = this->typeCast(left, llvm::Type::getInt32Ty(context));
+                            } else {
+                                throw logic_error("cann't use bool in +-*/");
+                            }
+                        }
+                    }
+                }
+                if (this->childNode[1]->nodeType->compare("PLUS") == 0) {
+                    return (left->getType() == llvm::Type::getFloatTy(context)) ? builder.CreateFAdd(left, right, "addtmpf") : builder.CreateAdd(left, right, "addtmpi");
+                }
+                else if (this->childNode[1]->nodeType->compare("MINUS") == 0) {
+                    return (left->getType() == llvm::Type::getFloatTy(context)) ? builder.CreateFSub(left, right, "subtmpf") : builder.CreateSub(left, right, "subtmpi");
+                }
+                else if (this->childNode[1]->nodeType->compare("STAR") == 0) {
+                    return (left->getType() == llvm::Type::getFloatTy(context)) ? builder.CreateFMul(left, right, "multmpf") : builder.CreateMul(left, right, "multmpi");
+                }
+                else if (this->childNode[1]->nodeType->compare("DIV") == 0) {
+                    return (left->getType() == llvm::Type::getFloatTy(context)) ? builder.CreateFDiv(left, right, "divtmpf") : builder.CreateSDiv(left, right, "divtmpi");
+                }
             }
         }
     }
@@ -421,6 +511,23 @@ llvm::Value * Node::irBuildRELOP() {
     #endif
     llvm::Value * left = this->childNode[0]->irBuildExp();
     llvm::Value * right = this->childNode[2]->irBuildExp();
+    if (left->getType() != right->getType()) {
+        if (left->getType() == llvm::Type::getFloatTy(context)) {
+            right = this->typeCast(right, llvm::Type::getFloatTy(context));
+        } else {
+            if (right->getType() == llvm::Type::getFloatTy(context)) {
+                left = this->typeCast(left, llvm::Type::getFloatTy(context));
+            } else {
+                if (left->getType() == llvm::Type::getInt32Ty(context)) {
+                    right = this->typeCast(right, llvm::Type::getInt32Ty(context));
+                } else if(right->getType() == llvm::Type::getInt32Ty(context)) {
+                    left = this->typeCast(left, llvm::Type::getInt32Ty(context));
+                } else {
+                    throw logic_error("cann't use bool in == != >= <= < >");
+                }
+            }
+        }
+    }
     if (this->childNode[1]->nodeName->compare("==") == 0) {
         return (left->getType() == llvm::Type::getFloatTy(context)) ? builder.CreateFCmpOEQ(left, right, "fcmptmp") : builder.CreateICmpEQ(left, right, "icmptmp");
     }
@@ -572,6 +679,8 @@ llvm::Value *Node::irBuildStmt() {
         return this->irBuildWhile();
     } else if (this->childNode[0]->nodeType->compare("RETURN") == 0) {
         return this->irBuildReturn();
+    } else if (this->childNode[0]->nodeType->compare("BREAK") == 0) {
+        return builder.CreateBr(GlobalAfterBB.top());
     } else if (this->childNode[0]->nodeType->compare("CompSt") == 0) {
         return this->childNode[0]->irBuildCompSt();
     }
@@ -588,6 +697,8 @@ llvm::Value *Node::irBuildWhile() {
     llvm::BasicBlock *condBB = llvm::BasicBlock::Create(context, "cond", TheFunction);
     llvm::BasicBlock *loopBB = llvm::BasicBlock::Create(context, "loop", TheFunction);
     llvm::BasicBlock *afterBB = llvm::BasicBlock::Create(context, "afterLoop", TheFunction);
+
+    GlobalAfterBB.push(afterBB);
     
     //Cond
     builder.CreateBr(condBB);
@@ -597,7 +708,7 @@ llvm::Value *Node::irBuildWhile() {
     condValue = builder.CreateICmpNE(condValue, llvm::ConstantInt::get(llvm::Type::getInt1Ty(context), 0, true), "whileCond");
     auto branch = builder.CreateCondBr(condValue, loopBB, afterBB);
     condBB = builder.GetInsertBlock();
-    
+
     //Loop
     builder.SetInsertPoint(loopBB);
     this->childNode[4]->irBuildStmt();
@@ -606,6 +717,7 @@ llvm::Value *Node::irBuildWhile() {
     //After
     builder.SetInsertPoint(afterBB);
     //this->backward(generator);
+    GlobalAfterBB.pop();
     return branch;
 }
 

@@ -36,6 +36,7 @@
 %token <label_tree> IF
 %token <label_tree> ELSE
 %token <label_tree> WHILE
+%token <label_tree> BREAK
 
 
 %nonassoc LOWER_THAN_ELSE
@@ -192,6 +193,9 @@ Stmt:
 		$$ = new Node("", "Stmt", 3, $1, $2, $3);
 	}
     | RETURN SEMI {
+        $$ = new Node("", "Stmt", 2, $1, $2);
+    }
+    | BREAK SEMI {
         $$ = new Node("", "Stmt", 2, $1, $2);
     }
     | IF LP Exp RP Stmt %prec LOWER_THAN_ELSE {

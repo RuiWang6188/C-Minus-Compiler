@@ -53,6 +53,8 @@ public:
     llvm::Value *irBuildPrintf();
     llvm::Value *irBuildScan();
     llvm::Value *irBuildAddr();
+    llvm::Instruction::CastOps getCastInst(llvm::Type* src, llvm::Type* dst);
+    llvm::Value *typeCast(llvm::Value* src, llvm::Type* dst);
     int getValueType();
     int getValueType(Node *node);
     void setValueType(int type);

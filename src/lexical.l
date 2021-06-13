@@ -17,7 +17,7 @@ digit  [0-9]
 digits [0-9]+
 RELOP  ">"|"<"|">="|"<="|"=="|"!="
 
-CHAR  \'.\'
+CHAR  \'.\'|\'\\.\'
 STRING \"(\\.|[^"\\])*\"
 INT 0|[1-9]{digit}*
 FLOAT {digits}\.{digits}
@@ -35,6 +35,7 @@ RETURN return
 IF if
 ELSE else
 WHILE while
+BREAK break
 
 ID [_a-zA-Z][_0-9a-zA-Z]*
 
@@ -71,6 +72,7 @@ TAB \t|" "
 {IF}   {yylval.label_tree = new Node(yytext, "IF", 0); return IF;}
 {ELSE}   {yylval.label_tree = new Node(yytext, "ELSE", 0); return ELSE;}
 {WHILE}   {yylval.label_tree = new Node(yytext, "WHILE", 0); return WHILE;}
+{BREAK}   {yylval.label_tree = new Node(yytext, "BREAK", 0); return BREAK;}
 {RETURN}   {yylval.label_tree = new Node(yytext, "RETURN", 0); return RETURN;}
 
 {LP}   {yylval.label_tree = new Node(yytext, "LP", 0); return LP;}
