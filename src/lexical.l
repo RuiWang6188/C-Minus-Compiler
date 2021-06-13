@@ -18,7 +18,7 @@ digits [0-9]+
 RELOP  ">"|"<"|">="|"<="|"=="|"!="
 
 CHAR  \'.\'
-STRING \"[.]*\"
+STRING \"(\\.|[^"\\])*\"
 INT 0|[1-9]{digit}*
 FLOAT {digits}\.{digits}
 BOOL "true"|"false"

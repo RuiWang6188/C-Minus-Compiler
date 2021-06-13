@@ -32,36 +32,6 @@ Node::Node(string nodeName, string nodeType, int childNum, ...) {
     cout<<nodeName<<" "<<nodeType<<endl;
 } 
 
-void Node::displayAST(Node* root, int indented){
-    if(root){
-        for(int i = 0; i < indented; i++)
-            printf("  ");
-        printf("%s",root->nodeType);
-        
-        if(strcmp(root->nodeType,"ID")==0)
-            printf(": %s",root->nodeName);
-        else if(strcmp(root->nodeType,"TYPE")==0)
-            printf(": %s",root->nodeName);
-        else if(strcmp(root->nodeType,"INT")==0)
-            printf(": %d",atoi(root->nodeName));   
-        else if(strcmp(root->nodeType,"FLOAT")==0)
-            printf(": %f",atof(root->nodeName));
-        else if(strcmp(root->nodeType,"CHAR")==0)
-            printf(": %s",root->nodeName); 
-        else if(strcmp(root->nodeType,"STRING")==0)
-            printf(": %s",root->nodeName);
-        else if(strcmp(root->nodeType,"BOOL")==0)
-            printf(": %d",atoi(root->nodeName));   
-        else
-            printf(" (%d)",root->line_no);
-
-        printf("\n");
-        //printf("%d\n",root->childnum);
-        for(int i = 0; i < root->childNum; i++)
-            print_ast(root->childNode[i],indented+1);
-    }
-}
-
 void Node::setValueType(int type) {
     this->valueType = type;
 }
@@ -101,25 +71,41 @@ llvm::Type* Node::getLlvmType(int type, int arraySize) {
             return llvm::Type::getInt32Ty(context);
             break;
         case TYPE_INT_ARRAY:
-            return llvm::ArrayType::get(llvm::Type::getInt32Ty(context), arraySize);
+            if (arraySize > 0) {
+                return llvm::ArrayType::get(llvm::Type::getInt32Ty(context), arraySize);
+            } else {
+                return llvm::Type::getInt32PtrTy(context);
+            }
             break;
         case TYPE_FLOAT:
             return llvm::Type::getFloatTy(context);
             break;
         case TYPE_FLOAT_ARRAY:
-            return llvm::ArrayType::get(llvm::Type::getFloatTy(context), arraySize);
+            if (arraySize > 0) {
+                return llvm::ArrayType::get(llvm::Type::getFloatTy(context), arraySize);
+            } else {
+                return llvm::Type::getFloatPtrTy(context);
+            }
             break;
         case TYPE_BOOL:
             return llvm::Type::getInt1Ty(context);
             break;
         case TYPE_BOOL_ARRAY:
-            return llvm::ArrayType::get(llvm::Type::getInt1Ty(context), arraySize);
+            if (arraySize > 0) {
+                return llvm::ArrayType::get(llvm::Type::getInt1Ty(context), arraySize);
+            } else {
+                return llvm::Type::getInt1PtrTy(context);
+            }
             break;
         case TYPE_CHAR:
             return llvm::Type::getInt8Ty(context);
             break;
         case TYPE_CHAR_ARRAY:
-            return llvm::ArrayType::get(llvm::Type::getInt8Ty(context), arraySize);
+            if (arraySize > 0) {
+                return llvm::ArrayType::get(llvm::Type::getInt8Ty(context), arraySize);
+            } else {
+                return llvm::Type::getInt8PtrTy(context);
+            }
             break;
         default:
             break;
@@ -132,7 +118,7 @@ llvm::Type* Node::getLlvmType(int type, int arraySize) {
 // ExtDecList --> VarDec COMMA ExtDecList
 // DecList --> VarDec
 // DecList --> VarDec COMMA DecList
-vector<pair<string, int>> *Node::getNameList() {
+vector<pair<string, int>> *Node::getNameList(int type) {
     if (this->nodeType->compare("ExtDecList") != 0 && this->nodeType->compare("DecList") != 0) {
         cout<<"Wrong function call : getNameList ."<<endl;
     }
@@ -143,10 +129,16 @@ vector<pair<string, int>> *Node::getNameList() {
         if (temp->childNode[0]->childNum == 4) {
             int arraySize = stoi(*temp->childNode[0]->childNode[2]->nodeName);
             nameList->push_back(make_pair(*temp->childNode[0]->childNode[0]->nodeName, ARRAY + arraySize));
+            temp->childNode[0]->childNode[0]->setValueType(type + ARRAY);
         }
         // VarDec --> ID
         else if (temp->childNode[0]->childNum == 1) {
             nameList->push_back(make_pair(*temp->childNode[0]->childNode[0]->nodeName, VAR));
+            temp->childNode[0]->childNode[0]->setValueType(type);
+        }
+        else if (temp->childNode[0]->childNum == 3) {
+            nameList->push_back(make_pair(*temp->childNode[0]->childNode[0]->nodeName, ARRAY));
+            temp->childNode[0]->childNode[0]->setValueType(type + ARRAY);
         }
         else {
             cout<<"Error:"<<endl;
@@ -219,6 +211,22 @@ vector<llvm::Value *> *Node::getArgs() {
     return args;
 }
 
+vector<llvm::Value *> *Node::getArgsAddr() {
+    vector<llvm::Value *> * args = new vector<llvm::Value *>;
+    Node *node = this;
+    while (true) {
+        if (node->childNum == 1) {
+            args->push_back(node->childNode[0]->irBuildAddr());
+            break;
+        }
+        else {
+            args->push_back(node->childNode[0]->irBuildAddr());
+            node = node->childNode[2];
+        }
+    }
+    return args;
+}
+
 llvm::Value * Node::irBuild() {
     cout<<*this->nodeType<<" "<<*this->nodeName<<endl;
     if (this->nodeType->compare("ExtDef") == 0) {
@@ -278,7 +286,14 @@ llvm::Value * Node::irBuildExp() {
     else if (this->childNode[0]->nodeType->compare("STRING") == 0) {
         // string --> "$ch"
         string str = this->childNode[0]->nodeName->substr(1, this->childNode[0]->nodeName->length() - 2);
-        return llvm::ConstantDataArray::getString(context, str);
+        llvm::Constant *strConst = llvm::ConstantDataArray::getString(context, str);
+        llvm::Value *globalVar = new llvm::GlobalVariable(*generator->module, strConst->getType(), true, llvm::GlobalValue::PrivateLinkage, strConst, "_Const_String_");
+        vector<llvm::Value*> indexList;
+        indexList.push_back(builder.getInt32(0));
+        indexList.push_back(builder.getInt32(0));
+        // var value
+        llvm::Value * varPtr = builder.CreateInBoundsGEP(globalVar, llvm::ArrayRef<llvm::Value*>(indexList));
+        return varPtr;
         //return builder.getInt8(this->childNode[0]->nodeName->at(1));
     }
     else if (this->childNode[0]->nodeType->compare("ID") == 0) {
@@ -338,7 +353,7 @@ llvm::Value * Node::irBuildExp() {
         }
     }
     else if (this->childNode[0]->nodeType->compare("LP") == 0) {
-        return this->childNode[0]->irBuildExp();
+        return this->childNode[1]->irBuildExp();
     }
     else if (this->childNode[0]->nodeType->compare("MINUS") == 0) {
         return builder.CreateNeg(this->childNode[1]->irBuildExp(), "tmpNeg");
@@ -346,11 +361,10 @@ llvm::Value * Node::irBuildExp() {
         //return type == TYPE_INT ? builder.CreateSub(builder.getInt32(0), this->childNode[1]->irBuildExp()) : builder.CreateFSub(llvm::ConstantFP::get(builder.getFloatTy(), llvm::APFloat(0.0)), this->childNode[1]->irBuildExp());
     }
     else if (this->childNode[0]->nodeType->compare("NOT") == 0) {
-        builder.CreateNot(this->childNode[1]->irBuildExp(), "tmpNot");
+        return builder.CreateNot(this->childNode[1]->irBuildExp(), "tmpNot");
     }
     // Exp op Exp
     else {
-        int type = this->childNode[0]->getValueType();
         if (this->childNode[1]->nodeType->compare("ASSIGNOP") == 0) {
             return builder.CreateStore(this->childNode[2]->irBuildExp(), this->childNode[0]->irBuildAddr());
         }
@@ -367,16 +381,16 @@ llvm::Value * Node::irBuildExp() {
                 return builder.CreateOr(left, right, "tmpOR");
             }
             else if (this->childNode[1]->nodeType->compare("PLUS") == 0) {
-                return type == TYPE_FLOAT ? builder.CreateFAdd(left, right, "addtmpf") : builder.CreateAdd(left, right, "addtmpi");
+                return (left->getType() == llvm::Type::getFloatTy(context)) ? builder.CreateFAdd(left, right, "addtmpf") : builder.CreateAdd(left, right, "addtmpi");
             }
             else if (this->childNode[1]->nodeType->compare("MINUS") == 0) {
-                return type == TYPE_FLOAT ? builder.CreateFSub(left, right, "subtmpf") : builder.CreateSub(left, right, "subtmpi");
+                return (left->getType() == llvm::Type::getFloatTy(context)) ? builder.CreateFSub(left, right, "subtmpf") : builder.CreateSub(left, right, "subtmpi");
             }
             else if (this->childNode[1]->nodeType->compare("STAR") == 0) {
-                return type == TYPE_FLOAT ? builder.CreateFMul(left, right, "multmpf") : builder.CreateMul(left, right, "multmpi");
+                return (left->getType() == llvm::Type::getFloatTy(context)) ? builder.CreateFMul(left, right, "multmpf") : builder.CreateMul(left, right, "multmpi");
             }
             else if (this->childNode[1]->nodeType->compare("DIV") == 0) {
-                return type == TYPE_FLOAT ? builder.CreateFDiv(left, right, "divtmpf") : builder.CreateSDiv(left, right, "divtmpi");
+                return (left->getType() == llvm::Type::getFloatTy(context)) ? builder.CreateFDiv(left, right, "divtmpf") : builder.CreateSDiv(left, right, "divtmpi");
             }
         }
     }
@@ -386,26 +400,25 @@ llvm::Value * Node::irBuildExp() {
 // Exp RELOP Exp
 llvm::Value * Node::irBuildRELOP() {
     cout<<*this->nodeType<<" "<<*this->nodeName<<endl;
-    int type = this->childNode[0]->getValueType();
     llvm::Value * left = this->childNode[0]->irBuildExp();
     llvm::Value * right = this->childNode[2]->irBuildExp();
     if (this->childNode[1]->nodeName->compare("==") == 0) {
-        return (type == TYPE_INT) ? builder.CreateICmpEQ(left, right, "icmptmp") : builder.CreateFCmpOEQ(left, right, "fcmptmp");
+        return (left->getType() == llvm::Type::getFloatTy(context)) ? builder.CreateFCmpOEQ(left, right, "fcmptmp") : builder.CreateICmpEQ(left, right, "icmptmp");
     }
     else if (this->childNode[1]->nodeName->compare(">=") == 0) {
-        return (type == TYPE_INT) ? builder.CreateICmpSGE(left, right, "icmptmp") : builder.CreateFCmpOGE(left, right, "fcmptmp");
+        return (left->getType() == llvm::Type::getFloatTy(context)) ? builder.CreateFCmpOGE(left, right, "fcmptmp") : builder.CreateICmpSGE(left, right, "icmptmp");
     }
     else if (this->childNode[1]->nodeName->compare("<=") == 0) {
-        return (type == TYPE_INT) ? builder.CreateICmpSLE(left, right, "icmptmp") : builder.CreateFCmpOLE(left, right, "fcmptmp");
+        return (left->getType() == llvm::Type::getFloatTy(context)) ? builder.CreateFCmpOLE(left, right, "fcmptmp") : builder.CreateICmpSLE(left, right, "icmptmp");
     }
     else if (this->childNode[1]->nodeName->compare(">") == 0) {
-        return (type == TYPE_INT) ? builder.CreateICmpSGT(left, right, "icmptmp") : builder.CreateFCmpOGT(left, right, "fcmptmp");
+        return (left->getType() == llvm::Type::getFloatTy(context)) ? builder.CreateFCmpOGT(left, right, "fcmptmp") : builder.CreateICmpSGT(left, right, "icmptmp");
     }
     else if (this->childNode[1]->nodeName->compare("<") == 0) {
-        return (type == TYPE_INT) ? builder.CreateICmpSLT(left, right, "icmptmp") : builder.CreateFCmpOLT(left, right, "fcmptmp");
+        return (left->getType() == llvm::Type::getFloatTy(context)) ? builder.CreateFCmpOLT(left, right, "fcmptmp") : builder.CreateICmpSLT(left, right, "icmptmp");
     }
     else if (this->childNode[1]->nodeName->compare("!=") == 0) {
-        return (type == TYPE_INT) ? builder.CreateICmpNE(left, right, "icmptmp") : builder.CreateFCmpONE(left, right, "fcmptmp");
+        return (left->getType() == llvm::Type::getFloatTy(context)) ? builder.CreateFCmpONE(left, right, "fcmptmp") : builder.CreateICmpNE(left, right, "icmptmp");
     }
     return NULL;
 }
@@ -443,8 +456,8 @@ llvm::Value * Node::irBuildCompSt() {
 // Def --> Specifier DecList SEMI
 llvm::Value * Node::irBuildVar() {
     cout<<"irBuildVar: "<<*this->nodeType<<" "<<*this->nodeName<<endl;
-    vector<pair<string, int>> *nameList = this->childNode[1]->getNameList();
     int type = this->childNode[0]->getValueType();
+    vector<pair<string, int>> *nameList = this->childNode[1]->getNameList(type);
     llvm::Type *llvmType;
     for (auto it : *nameList) {
         if (it.second == VAR) {
@@ -480,7 +493,7 @@ llvm::Value * Node::irBuildFun() {
     }
 
     llvm::FunctionType *funcType = llvm::FunctionType::get(getLlvmType(getValueType(this->childNode[0]), 0), argTypes, false);
-    llvm::Function *function = llvm::Function::Create(funcType, llvm::GlobalValue::InternalLinkage, *this->childNode[1]->childNode[0]->nodeName, generator->module);
+    llvm::Function *function = llvm::Function::Create(funcType, llvm::GlobalValue::ExternalLinkage, *this->childNode[1]->childNode[0]->nodeName, generator->module);
     generator->pushFunction(function);
 
     //Block
@@ -578,12 +591,13 @@ llvm::Value *Node::irBuildIf() {
     thenBB = builder.GetInsertBlock();
 
     // else
+    builder.SetInsertPoint(elseBB);
     if (this->childNum == 7) {
-        builder.SetInsertPoint(elseBB);
         elseValue = this->childNode[6]->irBuildStmt();
-        builder.CreateBr(mergeBB);
-        elseBB = builder.GetInsertBlock();
     }
+    builder.CreateBr(mergeBB);
+    elseBB = builder.GetInsertBlock();
+
     builder.SetInsertPoint(mergeBB);    
     //this->backward(generator);
     return branch;
@@ -617,6 +631,9 @@ llvm::Value *Node::irBuildPrint() {
         else if (arg->getType() == builder.getFloatTy()) {
             formatStr += "%f";
         }
+        else if (arg->getType() == builder.getInt8PtrTy()) {
+            formatStr += "%s";
+        }
         else {
             throw logic_error("[ERROR]Invalid type to write.");
         }
@@ -635,8 +652,7 @@ llvm::Value *Node::irBuildPrint() {
 // Args --> Exp
 llvm::Value *Node::irBuildScan() {
     string formatStr = "";
-    vector<llvm::Value*> *args = this->childNode[2]->getArgs();
-    llvm::Value *argAddr, *argValue;
+    vector<llvm::Value*> *args = this->childNode[2]->getArgsAddr();
     //Just common variable
     for (auto arg : *args) {
         if (arg->getType()->getPointerElementType() == builder.getInt32Ty()) {

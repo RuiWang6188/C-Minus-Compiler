@@ -56,12 +56,13 @@ public:
     int getValueType(Node *node);
     void setValueType(int type);
     llvm::Type* getLlvmType(int type, int arraySize); 
-    vector<pair<string, int>> *getNameList();
+    vector<pair<string, int>> *getNameList(int type);
     vector<llvm::Value *> *getArgs();
+    vector<llvm::Value *> *getArgsAddr();
     vector<pair<string, llvm::Type*>> *getParam();
     Node(char * nodeName, string nodeType, int lineNo);
     Node(string nodeName, string nodeType, int childNum, ...);
-    void displayAST(Node* root, int indented);
+
     ~Node();
 };
 

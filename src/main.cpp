@@ -9,6 +9,9 @@ extern int yyparse();
 
 int main() {
     yyparse();
+    llvm::InitializeNativeTarget();
+    llvm::InitializeNativeTargetAsmPrinter();
+    llvm::InitializeNativeTargetAsmParser();
     generator = new codeGen();
     generator->generate(ROOT);
 

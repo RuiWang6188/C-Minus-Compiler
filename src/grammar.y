@@ -350,6 +350,10 @@ Exp:
         $$ = new Node("", "Exp", 4, $1, $2, $3, $4);
         $$->setValueType($1->getValueType() - ARRAY);
     }
+    | ID LB RB {
+        $$ = new Node("", "Exp", 3, $1, $2, $3);
+        $$->setValueType($1->getValueType() + ARRAY);
+    }
     | ID {
         $$ = new Node("", "Exp", 1, $1);
         $$->setValueType($1->getValueType());
