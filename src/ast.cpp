@@ -10,7 +10,9 @@ Node::Node(char * nodeName, string nodeType, int lineNo) {
     this->nodeType = new string(nodeType);
     this->lineNo = lineNo;
     this->childNum = 0;
+    #ifdef DEBUG
     cout<<nodeName<<" "<<nodeType<<endl;
+    #endif
 }
 
 Node::Node(string nodeName, string nodeType, int childNum, ...) {
@@ -29,7 +31,9 @@ Node::Node(string nodeName, string nodeType, int childNum, ...) {
     }
     this->lineNo = this->childNode[0]->lineNo;
     va_end(l);
+    #ifdef DEBUG
     cout<<nodeName<<" "<<nodeType<<endl;
+    #endif
 } 
 
 void Node::setValueType(int type) {
@@ -120,7 +124,7 @@ llvm::Type* Node::getLlvmType(int type, int arraySize) {
 // DecList --> VarDec COMMA DecList
 vector<pair<string, int>> *Node::getNameList(int type) {
     if (this->nodeType->compare("ExtDecList") != 0 && this->nodeType->compare("DecList") != 0) {
-        cout<<"Wrong function call : getNameList ."<<endl;
+        throw logic_error("[ERROR]Wrong function call : getNameList.");
     }
     Node *temp = this;
     vector<pair<string, int>> *nameList = new vector<pair<string, int>>;
@@ -141,7 +145,7 @@ vector<pair<string, int>> *Node::getNameList(int type) {
             temp->childNode[0]->childNode[0]->setValueType(type + ARRAY);
         }
         else {
-            cout<<"Error:"<<endl;
+            throw logic_error("[ERROR]Wrong var def");
             return nameList;
         } 
         // ExtDecList --> VarDec COMMA ExtDecList
@@ -161,7 +165,7 @@ vector<pair<string, int>> *Node::getNameList(int type) {
 // ParamDec --> Specifier VarDec
 vector<pair<string, llvm::Type*>> *Node::getParam() {
     if (this->nodeType->compare("VarList") != 0) {
-        cout<<"Wrong function call : getParam ."<<endl;
+        throw logic_error("[ERROR]Wrong function call : getParam.");
         return NULL;
     }
     Node *temp0 = this;
@@ -180,7 +184,7 @@ vector<pair<string, llvm::Type*>> *Node::getParam() {
             paramList->push_back(make_pair(*temp1->childNode[1]->childNode[0]->nodeName, getLlvmType(VAR + getValueType(temp1->childNode[0]), 0)));
         }
         else {
-            cout<<"Error:"<<endl;
+            throw logic_error("[ERROR]Wrong var def.");
             return paramList;
         } 
         // VarList --> ParamDec COMMA VarList
@@ -228,7 +232,9 @@ vector<llvm::Value *> *Node::getArgsAddr() {
 }
 
 llvm::Value * Node::irBuild() {
+    #ifdef DEBUG
     cout<<*this->nodeType<<" "<<*this->nodeName<<endl;
+    #endif
     if (this->nodeType->compare("ExtDef") == 0) {
         if (this->childNode[1]->nodeType->compare("ExtDecList") == 0) {
             return this->irBuildVar();
@@ -247,6 +253,7 @@ llvm::Value * Node::irBuild() {
 
 // Exp --> ID
 // Exp --> ID[Exp]
+// Exp --> ID[]
 llvm::Value * Node::irBuildAddr() {
     if (this->childNum == 1) {
         return generator->findValue(*this->childNode[0]->nodeName);
@@ -258,6 +265,8 @@ llvm::Value * Node::irBuildAddr() {
         indexList.push_back(indexValue);
         // var value
         return builder.CreateInBoundsGEP(arrayValue, llvm::ArrayRef<llvm::Value*>(indexList));
+    } else if(this->childNum == 3) {
+        return generator->findValue(*this->childNode[0]->nodeName);
     } else {
         //ERROR
     }
@@ -265,7 +274,9 @@ llvm::Value * Node::irBuildAddr() {
 }
 
 llvm::Value * Node::irBuildExp() {
+    #ifdef DEBUG
     cout<<"irBuildExp: "<<*this->nodeType<<" "<<*this->nodeName<<endl;
+    #endif
     if (this->childNode[0]->nodeType->compare("INT") == 0) {
         return builder.getInt32(stoi(*this->childNode[0]->nodeName));
     } 
@@ -300,7 +311,7 @@ llvm::Value * Node::irBuildExp() {
         if (this->childNum == 1) {
             // always return var value
             llvm::Value * varPtr = generator->findValue(*this->childNode[0]->nodeName);
-            if (varPtr->getType()->isPointerTy()) {
+            if (varPtr->getType()->isPointerTy() && !(varPtr->getType()->getPointerElementType()->isArrayTy())) {
                 return builder.CreateLoad(varPtr->getType()->getPointerElementType(), varPtr, "tmpvar");
             }
             else {
@@ -314,7 +325,7 @@ llvm::Value * Node::irBuildExp() {
             if (this->childNode[1]->nodeType->compare("LP") == 0) {
                 llvm::Function *fun = generator->module->getFunction(*this->childNode[0]->nodeName);
                 if (fun == nullptr) {
-                    cout<<"[ERROR] Funtion not defined: "<<*this->childNode[0]->nodeName<<endl;
+                    throw logic_error("ERROR] Funtion not defined: " + *this->childNode[0]->nodeName);
                 }
                 return builder.CreateCall(fun, nullptr, "calltmp");
             }
@@ -334,7 +345,7 @@ llvm::Value * Node::irBuildExp() {
                 }
                 llvm::Function *fun = generator->module->getFunction(*this->childNode[0]->nodeName);
                 if (fun == nullptr) {
-                    cout<<"[ERROR] Funtion not defined: "<<*this->childNode[0]->nodeName<<endl;
+                    throw logic_error("ERROR] Funtion not defined: " + *this->childNode[0]->nodeName);
                 }
                 vector<llvm::Value*> *args = this->childNode[2]->getArgs();
                 return builder.CreateCall(fun, *args, "calltmp");
@@ -399,7 +410,9 @@ llvm::Value * Node::irBuildExp() {
 
 // Exp RELOP Exp
 llvm::Value * Node::irBuildRELOP() {
+    #ifdef DEBUG
     cout<<*this->nodeType<<" "<<*this->nodeName<<endl;
+    #endif
     llvm::Value * left = this->childNode[0]->irBuildExp();
     llvm::Value * right = this->childNode[2]->irBuildExp();
     if (this->childNode[1]->nodeName->compare("==") == 0) {
@@ -428,7 +441,9 @@ llvm::Value * Node::irBuildRELOP() {
 // Def --> Specifier DecList SEMI
 // StmtList --> Stmt StmtList
 llvm::Value * Node::irBuildCompSt() {
+    #ifdef DEBUG
     cout<<"irBuildCompSt: "<<*this->nodeType<<" "<<*this->nodeName<<endl;
+    #endif
     Node * defNodes = this->childNode[1];
     Node * stmtNodes = this->childNode[2];
     while (true) {
@@ -455,7 +470,9 @@ llvm::Value * Node::irBuildCompSt() {
 // ExtDef --> Specifier ExtDecList SEMI
 // Def --> Specifier DecList SEMI
 llvm::Value * Node::irBuildVar() {
+    #ifdef DEBUG
     cout<<"irBuildVar: "<<*this->nodeType<<" "<<*this->nodeName<<endl;
+    #endif
     int type = this->childNode[0]->getValueType();
     vector<pair<string, int>> *nameList = this->childNode[1]->getNameList(type);
     llvm::Type *llvmType;
@@ -467,7 +484,17 @@ llvm::Value * Node::irBuildVar() {
         }
         if (generator->funStack.empty()) {
             llvm::GlobalVariable* globalVar = new llvm::GlobalVariable(*generator->module, llvmType, false, llvm::GlobalValue::PrivateLinkage, 0, it.first);
-            globalVar->setInitializer(llvm::ConstantInt::get(llvmType, 0));
+            if (llvmType->isArrayTy()) {
+                std::vector<llvm::Constant*> constArrayElem;
+                llvm::Constant* constElem = llvm::ConstantInt::get(llvmType->getArrayElementType(), 0);
+                for (int i = 0; i < llvmType->getArrayNumElements(); i++) {
+                    constArrayElem.push_back(constElem);
+                }
+                llvm::Constant* constArray = llvm::ConstantArray::get(llvm::ArrayType::get(llvmType->getArrayElementType(), llvmType->getArrayNumElements()), constArrayElem);
+                globalVar->setInitializer(constArray);
+            } else {
+                globalVar->setInitializer(llvm::ConstantInt::get(llvmType, 0));
+            }
             //if (generator->module->getGlobalVariable(it.first, true) == nullptr) {
             //    cout<<"ERROR"<<endl;
             //}
@@ -481,7 +508,9 @@ llvm::Value * Node::irBuildVar() {
 
 // Specifier FunDec CompSt
 llvm::Value * Node::irBuildFun() {
+    #ifdef DEBUG
     cout<<"irBuildFun: "<<*this->nodeType<<" "<<*this->nodeName<<endl;
+    #endif
     vector<pair<string, llvm::Type*>> *params = nullptr;
     vector<llvm::Type*> argTypes;
     // FunDec --> ID LP VarList RP
@@ -526,7 +555,9 @@ llvm::Value * Node::irBuildFun() {
 
 // Stmt
 llvm::Value *Node::irBuildStmt() {
+    #ifdef DEBUG
     cout<<"irBuildStmt: "<<*this->nodeType<<" "<<*this->nodeName<<endl;
+    #endif
     if (this->childNode[0]->nodeType->compare("Exp") == 0) {
         return this->childNode[0]->irBuildExp();
     } else if (this->childNode[0]->nodeType->compare("IF") == 0) {
@@ -544,7 +575,9 @@ llvm::Value *Node::irBuildStmt() {
 // WHILE LP Exp RP Stmt
 llvm::Value *Node::irBuildWhile() {
     //this->forward(generator);
+    #ifdef DEBUG
     cout<<"irBuildWhile: "<<*this->nodeType<<" "<<*this->nodeName<<endl;
+    #endif
     llvm::Function *TheFunction = generator->getCurFunction();
     llvm::BasicBlock *condBB = llvm::BasicBlock::Create(context, "cond", TheFunction);
     llvm::BasicBlock *loopBB = llvm::BasicBlock::Create(context, "loop", TheFunction);
@@ -573,8 +606,9 @@ llvm::Value *Node::irBuildWhile() {
 // IF LP Exp RP Stmt %prec LOWER_THAN_ELSE
 // IF LP Exp RP Stmt ELSE Stmt
 llvm::Value *Node::irBuildIf() {
-    //this->forward(generator);
+    #ifdef DEBUG
     cout<<*this->nodeType<<" "<<*this->nodeName<<endl;
+    #endif
     llvm::Value *condValue = this->childNode[2]->irBuildExp(), *thenValue = nullptr, *elseValue = nullptr;
     condValue = builder.CreateICmpNE(condValue, llvm::ConstantInt::get(llvm::Type::getInt1Ty(context), 0, true), "ifCond");
 
@@ -599,14 +633,15 @@ llvm::Value *Node::irBuildIf() {
     elseBB = builder.GetInsertBlock();
 
     builder.SetInsertPoint(mergeBB);    
-    //this->backward(generator);
     return branch;
 }
 
 // RETURN Exp SEMI
 // RETURN SEMI
 llvm::Value *Node::irBuildReturn() {
+    #ifdef DEBUG
     cout<<"irBuildReturn: "<<*this->nodeType<<*this->nodeName<<endl;
+    #endif
     if (this->childNum == 3) {
         auto returnInst = this->childNode[1]->irBuildExp();
         return builder.CreateRet(returnInst);
@@ -633,6 +668,13 @@ llvm::Value *Node::irBuildPrint() {
         }
         else if (arg->getType() == builder.getInt8PtrTy()) {
             formatStr += "%s";
+        }
+        else if (arg->getType()->getPointerElementType()->isArrayTy() && arg->getType()->getPointerElementType()->getArrayElementType() == builder.getInt8Ty()) {
+            formatStr += "%s";
+            vector<llvm::Value*> indexList;
+            indexList.push_back(builder.getInt32(0));
+            indexList.push_back(builder.getInt32(0));
+            arg = builder.CreateGEP(arg, indexList);
         }
         else {
             throw logic_error("[ERROR]Invalid type to write.");
@@ -666,6 +708,9 @@ llvm::Value *Node::irBuildScan() {
         }
         else if (arg->getType()->getPointerElementType() == builder.getFloatTy()) {
             formatStr += "%f";
+        }
+        else if (arg->getType()->getPointerElementType()->isArrayTy() && arg->getType()->getPointerElementType()->getArrayElementType() == builder.getInt8Ty()) {
+            formatStr += "%s";
         }
         else {
             throw logic_error("[ERROR]Invalid type to read.");
