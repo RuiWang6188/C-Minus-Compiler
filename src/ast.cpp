@@ -264,7 +264,7 @@ llvm::Value * Node::irBuildAddr() {
         indexList.push_back(builder.getInt32(0));
         indexList.push_back(indexValue);
         // var value
-        return builder.CreateInBoundsGEP(arrayValue, llvm::ArrayRef<llvm::Value*>(indexList));
+        return builder.CreateInBoundsGEP(arrayValue, llvm::ArrayRef<llvm::Value*>(indexList), "tmpvar");
     } else if(this->childNum == 3) {
         return generator->findValue(*this->childNode[0]->nodeName);
     } else {
@@ -303,7 +303,7 @@ llvm::Value * Node::irBuildExp() {
         indexList.push_back(builder.getInt32(0));
         indexList.push_back(builder.getInt32(0));
         // var value
-        llvm::Value * varPtr = builder.CreateInBoundsGEP(globalVar, llvm::ArrayRef<llvm::Value*>(indexList));
+        llvm::Value * varPtr = builder.CreateInBoundsGEP(globalVar, llvm::ArrayRef<llvm::Value*>(indexList), "tmpvar");
         return varPtr;
         //return builder.getInt8(this->childNode[0]->nodeName->at(1));
     }
@@ -357,7 +357,7 @@ llvm::Value * Node::irBuildExp() {
                 indexList.push_back(builder.getInt32(0));
                 indexList.push_back(indexValue);
                 // var value
-                llvm::Value * varPtr = builder.CreateInBoundsGEP(arrayValue, llvm::ArrayRef<llvm::Value*>(indexList));
+                llvm::Value * varPtr = builder.CreateInBoundsGEP(arrayValue, llvm::ArrayRef<llvm::Value*>(indexList), "tmpvar");
                 return builder.CreateLoad(varPtr->getType()->getPointerElementType(), varPtr, "tmpvar");
                 //return builder.CreateLoad(builder.CreateInBoundsGEP(arrayValue, llvm::ArrayRef<llvm::Value*>(indexList)), "tmpvar");
             }
