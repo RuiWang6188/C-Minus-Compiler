@@ -46,7 +46,7 @@ llvm::Function* codeGen::createScanf()
 
 void codeGen::generate(Node* root) {
     root->irBuild();
-    this->module->print(llvm::errs(), nullptr);
+    this->module->print(llvm::outs(), nullptr);
 }
 
 codeGen::codeGen(/* args */) {

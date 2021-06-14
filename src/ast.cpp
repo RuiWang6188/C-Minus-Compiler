@@ -204,12 +204,33 @@ vector<llvm::Value *> *Node::getArgs() {
     vector<llvm::Value *> * args = new vector<llvm::Value *>;
     Node *node = this;
     while (true) {
+        llvm::Value * tmp = node->childNode[0]->irBuildExp();
         if (node->childNum == 1) {
-            args->push_back(node->childNode[0]->irBuildExp());
+            args->push_back(tmp);
             break;
         }
         else {
-            args->push_back(node->childNode[0]->irBuildExp());
+            args->push_back(tmp);
+            node = node->childNode[2];
+        }
+    }
+    return args;
+}
+
+// print need cast float to double
+vector<llvm::Value *> *Node::getPrintArgs() {
+    vector<llvm::Value *> * args = new vector<llvm::Value *>;
+    Node *node = this;
+    while (true) {
+        llvm::Value * tmp = node->childNode[0]->irBuildExp();
+        if (tmp->getType() == llvm::Type::getFloatTy(context))
+            tmp = builder.CreateFPExt(tmp, llvm::Type::getDoubleTy(context), "tmpdouble");
+        if (node->childNum == 1) {
+            args->push_back(tmp);
+            break;
+        }
+        else {
+            args->push_back(tmp);
             node = node->childNode[2];
         }
     }
@@ -768,14 +789,14 @@ llvm::Value *Node::irBuildReturn() {
 }
 
 llvm::Value *Node::irBuildPrintf() {
-    vector<llvm::Value *> *args = this->childNode[2]->getArgs();
+    vector<llvm::Value *> *args = this->childNode[2]->getPrintArgs();
     return builder.CreateCall(generator->printf, *args, "printf");
 }
 
 // Exp --> ID LP Args RP
 llvm::Value *Node::irBuildPrint() {
     string formatStr = "";
-    vector<llvm::Value *> *args = this->childNode[2]->getArgs();
+    vector<llvm::Value *> *args = this->childNode[2]->getPrintArgs();
     for (auto & arg : *args) {
         if (arg->getType() == builder.getInt32Ty()) {
             formatStr += "%d";
@@ -786,8 +807,8 @@ llvm::Value *Node::irBuildPrint() {
         else if (arg->getType() == builder.getInt1Ty()) {
             formatStr += "%d";
         }
-        else if (arg->getType() == builder.getFloatTy()) {
-            formatStr += "%f";
+        else if (arg->getType() == builder.getDoubleTy()) {
+            formatStr += "%lf";
         }
         else if (arg->getType() == builder.getInt8PtrTy()) {
             formatStr += "%s";

@@ -61,6 +61,7 @@ public:
     llvm::Type* getLlvmType(int type, int arraySize); 
     vector<pair<string, int>> *getNameList(int type);
     vector<llvm::Value *> *getArgs();
+    vector<llvm::Value *> *getPrintArgs();
     vector<llvm::Value *> *getArgsAddr();
     vector<pair<string, llvm::Type*>> *getParam();
     Node(char * nodeName, string nodeType, int lineNo);
