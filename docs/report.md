@@ -39,7 +39,104 @@ Lex读入lex文件中定义的词法分析规则，输出C语言词法分析器�
 
 我们需要先在yacc源文件grammar.y中声明这些token，并在lex源文件lexical.l中定义这些token对应的操作。
 
+token大致分为如下几种情况：
+- C Minus语言关键字
+``` lex
+RETURN return
+IF if
+ELSE else
+WHILE while
+BREAK break
+BOOL "true"|"false"
+TYPE "int"|"float"|"boolean"|"char"
+... 
+%% 
+...
+{IF}   {yylval.label_tree = new Node(yytext, "IF", 0); return IF;}
+{ELSE}   {yylval.label_tree = new Node(yytext, "ELSE", 0); return ELSE;}
+{WHILE}   {yylval.label_tree = new Node(yytext, "WHILE", 0); return WHILE;}
+{BREAK}   {yylval.label_tree = new Node(yytext, "BREAK", 0); return BREAK;}
+{RETURN}   {yylval.label_tree = new Node(yytext, "RETURN", 0); return RETURN;}
+{BOOL}  {yylval.label_tree = new Node(yytext, "BOOL", 0); return BOOL;}
+{TYPE}   {yylval.label_tree = new Node(yytext, "TYPE", 0); return TYPE;}
+```
+C Minus语言操作符
 
+``` lex
+LP \(
+RP \)
+LB \[
+RB \]
+LC \{
+RC \}
+ASSIGNOP =
+RELOP  ">"|"<"|">="|"<="|"=="|"!="
+PLUS \+
+MINUS -
+STAR \*
+DIV \/
+AND &&
+OR "||"
+NOT !
+...
+%%
+...
+{LP}   {yylval.label_tree = new Node(yytext, "LP", 0); return LP;}
+{RP}   {yylval.label_tree = new Node(yytext, "RP", 0); return RP;}
+{LB}   {yylval.label_tree = new Node(yytext, "LB", 0); return LB;}
+{RB}   {yylval.label_tree = new Node(yytext, "RB", 0); return RB;}
+{LC}   {yylval.label_tree = new Node(yytext, "LC", 0); return LC;}
+{RC}   {yylval.label_tree = new Node(yytext, "RC", 0); return RC;}
+{ASSIGNOP}   {yylval.label_tree = new Node(yytext, "ASSIGNOP", 0); return ASSIGNOP;}
+{RELOP}   {yylval.label_tree = new Node(yytext, "RELOP",0); return RELOP;}
+{PLUS}  {yylval.label_tree = new Node(yytext, "PLUS", 0); return PLUS;}
+{MINUS}   {yylval.label_tree = new Node(yytext, "MINUS", 0); return MINUS;}
+{STAR}   {yylval.label_tree = new Node(yytext, "STAR", 0); return STAR;}
+{DIV}   {yylval.label_tree = new Node(yytext, "DIV", 0); return DIV;}
+{AND}   {yylval.label_tree = new Node(yytext, "AND", 0); return AND;}
+{OR}   {yylval.label_tree = new Node(yytext, "OR", 0); return OR;}
+{NOT}   {yylval.label_tree = new Node(yytext, "NOT", 0); return NOT;}
+{AND}   {yylval.label_tree = new Node(yytext, "AND", 0); return AND;}
+{OR}   {yylval.label_tree = new Node(yytext, "OR", 0); return OR;}
+{NOT}   {yylval.label_tree = new Node(yytext, "NOT", 0); return NOT;}
+```
+
+- C Minus语言标识符和其他标记
+```lex
+digit  [0-9]
+digits [0-9]+
+CHAR  \'.\'|\'\\.\'
+STRING \"(\\.|[^"\\])*\"
+INT 0|[1-9]{digit}*
+FLOAT {digits}\.{digits}
+ID [_a-zA-Z][_0-9a-zA-Z]*
+CR \r
+LF \n
+TAB \t|" "
+...
+%%
+...
+{CHAR}  {yylval.label_tree = new Node(yytext, "CHAR", 0); return CHAR;}
+{INT}   {yylval.label_tree = new Node(yytext, "INT", 0); return INT;}
+{FLOAT} {yylval.label_tree = new Node(yytext, "FLOAT", 0); return FLOAT;}   
+{STRING}    {yylval.label_tree = new Node(yytext, "STRING", 0); return STRING;}
+{ID}  {yylval.label_tree = new Node(yytext, "ID", 0); return ID;}
+
+{CR}  {;}
+{LF} {yycolumn=1;}
+{TAB}  {;}
+```
+
+- C Minus语言注释
+```lex
+COMMENTMULTILINE \/\*([^\*]|(\*)*[^\*/])*(\*)*\*\/ 
+COMMENTLINE \/\/[^\n]*
+...
+%%
+...
+{COMMENTMULTILINE} {}
+{COMMENTLINE} {}
+```
 ## 第二章 语法分析
 
 ## 第三章 语义分析
