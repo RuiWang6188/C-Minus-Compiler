@@ -11,6 +11,7 @@
 #include <llvm/IR/IRPrintingPasses.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/GlobalVariable.h>
+#include <json/json.h>
 
 #include <iostream>
 #include <string>
@@ -66,6 +67,7 @@ public:
     vector<pair<string, llvm::Type*>> *getParam();
     Node(char * nodeName, string nodeType, int lineNo);
     Node(string nodeName, string nodeType, int childNum, ...);
+    Json::Value jsonGen();
 
     ~Node();
 };
