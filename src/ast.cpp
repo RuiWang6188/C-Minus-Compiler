@@ -617,6 +617,10 @@ llvm::Value * Node::irBuildVar() {
             llvmType = getLlvmType(type + ARRAY, it.second - ARRAY);
         }
         if (generator->funStack.empty()) {
+            llvm::Value *tmp = generator->module->getGlobalVariable(it.first, true);
+            if(tmp != nullptr){
+                throw logic_error("Redefined Variable: " + it.first);
+            }
             llvm::GlobalVariable* globalVar = new llvm::GlobalVariable(*generator->module, llvmType, false, llvm::GlobalValue::PrivateLinkage, 0, it.first);
             if (llvmType->isArrayTy()) {
                 std::vector<llvm::Constant*> constArrayElem;
@@ -633,7 +637,11 @@ llvm::Value * Node::irBuildVar() {
             //    cout<<"ERROR"<<endl;
             //}
         }
-        else {
+        else {            
+            llvm::Value *tmp = generator->funStack.top()->getValueSymbolTable()->lookup(it.first);
+            if(tmp != nullptr){
+                throw logic_error("Redefined Variable: " + it.first);
+            }            
             llvm::Value* alloc = CreateEntryBlockAlloca(generator->getCurFunction(), it.first, llvmType);
         }
     }
