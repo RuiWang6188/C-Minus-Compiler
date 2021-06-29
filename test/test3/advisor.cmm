@@ -1,0 +1,299 @@
+char info[1000000];	// 1000*1000 �����������������
+int pass[1000];		// ����ĳһ���γ��Ƿ����ޣ�ͨ��Ϊ1��δ�޻�δͨ��Ϊ0
+char preCourses[1000000];	// 1000*1000 ����ĳһ���γ̵�ǰ�ÿγ��ַ���
+
+int main()
+{
+	int i;
+	int j;
+	char end;
+	char ch;
+	int totalGPA;
+	int trialCredits;
+	int passCredits;
+	int totalCredits;
+	int index;
+	int no;				// ���ڴ���'|'���ֵĸ���
+	int credit;			// ���ڴ洢��һ���γ���Ϣ��ѧ��
+	int preIndex;		// ��ʼ��ǰ�ÿγ�¼�뵽�ڼ����ַ�
+	int remainCredits;
+	float GPA;
+	int passNum;	 // ͨ���Ŀγ�����
+	char pre[10000];	// 100*100 һ�д���һ���γ̴���
+	int suc[100];		// ĳ��ǰ�ÿγ��Ƿ�ƥ��ɹ�
+
+	int preJ;			// ��¼���ڼ����ַ�
+	int temp;			// ��������Ƽ�
+	int num;			// ��һ������num��ǰ�ÿγ�
+	int courseIndex;
+	i = 0;
+	while (1) {
+		scan(end);
+		if (end != '\n') {
+			info[i * 1000] = end;
+		}
+		else {
+			info[i * 1000] = '\0';
+			break;
+		}
+
+		j = 1;
+		while (1) {
+			scan(ch);
+			if (ch != '\n') {
+				info[i * 1000 + j] = ch;
+			}
+			else {
+				info[i * 1000 + j] = '\0';
+				break;
+			}
+			j = j + 1;
+		}
+
+		i = i + 1;
+	}
+	// ������Ϻ�i��ֵ����¼�ж������γ���Ϣ��Ҳ����˵info��ǰi�ж�����Ч����Ϣ
+
+
+	totalGPA = 0;
+	trialCredits = 0;
+	passCredits = 0;
+	totalCredits = 0;
+	index = 0;
+
+	while (index < i) {
+		no = 0;
+		credit = 0;
+		preIndex = 0;
+		pass[index] = 0;	// ��ʼ���γ�Ϊδ��
+
+		j = 0;
+		while (1) {
+			if (info[index * 1000 + j] == '|') {
+				no = no + 1;
+			}
+			// ��1��'|'�������ѧ��
+			if (no == 1) {
+				credit = info[index * 1000 + j + 1] - '0';
+				totalCredits = totalCredits + credit;
+				j = j + 1;
+			}
+			if (no == 2) {
+				if (info[index * 1000 + j + 1] == '|') {
+					preCourses[index + 1000 + preIndex] = '\0';
+				}
+				else {
+					preCourses[index * 1000 + preIndex] = info[index * 1000 + j + 1];
+				}
+				preIndex = preIndex + 1;
+			}
+
+			if (no == 3) {
+				ch = info[index * 1000 + j + 1];
+				if (ch == 'A') {
+					trialCredits = trialCredits + credit;
+					passCredits = passCredits + credit;
+					totalGPA = totalGPA + credit * 4;
+					pass[index] = 1;
+				}
+				else if (ch == 'B') {
+					trialCredits = trialCredits + credit;
+					passCredits = passCredits + credit;
+					totalGPA = totalGPA + credit * 3;
+					pass[index] = 1;
+				}
+				else if (ch == 'C') {
+					trialCredits = trialCredits + credit;
+					passCredits = passCredits + credit;
+					totalGPA = totalGPA + credit * 2;
+					pass[index] = 1;
+				}
+				else if (ch == 'D') {
+					trialCredits = trialCredits + credit;
+					passCredits = passCredits + credit;
+					totalGPA = totalGPA + credit * 1;
+					pass[index] = 1;
+				}
+				else if (ch == 'F') {
+					trialCredits = trialCredits + credit;
+				}
+				break;
+			}
+
+
+
+			j = j + 1;
+		}
+
+		index = index + 1;
+	}
+
+	remainCredits = totalCredits - passCredits;
+	GPA = totalGPA;
+	if (trialCredits != 0) {
+		GPA = GPA / trialCredits;
+	}
+
+	printf("GPA: %.1lf", GPA);
+	print("");
+	printf("Hours Attempted: %d", trialCredits);
+	print("");
+	printf("Hours Completed: %d", passCredits);
+	print("");
+	printf("Credits Remaining: %d", remainCredits);
+	print("");
+	print("");
+	printf("Possible Courses to Take Next");
+	print("");
+
+	index = 0;
+
+	while (index < i) {
+		// ����ÿγ�ûͨ�������ж��Ƿ�Ϊ�Ƽ��γ�
+		if (pass[index] == 0) {
+			if (preCourses[index * 1000] == '\0') {
+				// ����ÿγ�û��ǰ�ÿγ�,ֱ������γ���
+				printf("  ");
+				j = 0;
+				while (1) {
+					if (info[index * 1000 + j] != '|') {
+						printf("%c", info[index * 1000 + j]);
+					}
+					else {
+						print("");
+						break;
+					}
+					j = j + 1;
+				}
+			}
+			// ����ÿγ���ǰ�ÿγ�
+			else {
+				j = 0;			// �ñ�ű�ʾ��ȡ��preCourses�ĵڼ����ַ�
+				while (1) {
+
+
+					//pre[10000] = { 0 };
+					//suc[100] = { 0 };
+					preIndex = 0;
+					preJ = 0;
+					temp = 1;
+					// ��ʼ�����ȡpreCourses������ַ���j��ʾ��ȡ���ڼ���
+					while (1) {
+						// ��ͨ���ţ�ֱ��¼��
+						if (preCourses[index * 1000 + j] != ',' && preCourses[index * 1000 + j] != ';' && preCourses[index * 1000 + j] != '\0') {
+							pre[preIndex * 100 + preJ] = preCourses[index * 1000 + j];
+							preJ = preJ + 1;
+						}
+						// ����','ת������
+						else if (preCourses[index * 1000 + j] == ',') {
+							pre[preIndex * 100 + preJ] = '\0';
+							preIndex = preIndex + 1;
+							preJ = 0;
+						}
+						// ����';'��'\0'�����������Ƿ����㣬��������������������¼��
+						else if (preCourses[index * 1000 + j] == ';' || preCourses[index * 1000 + j] == '\0') {
+							pre[preIndex * 100 + preJ] = '\0';
+
+							num = preIndex + 1;
+							preIndex = 0;
+							while (preIndex < num) {
+								suc[preIndex] = 0;
+
+								// ��info�����courseIndex�еĿγ̴������Ƚ�
+								courseIndex = 0;
+								while (courseIndex < i) {
+									// ͨ�������ʸ�ʼ�Ƚ�
+									if (pass[courseIndex] == 1) {
+										preJ = 0;
+
+										while (1) {
+											// һ��һ���ַ�ƥ���Ƿ���ͬ
+											if (pre[preIndex * 100 + preJ] == info[courseIndex * 1000 + preJ]) {
+												preJ = preJ + 1;
+											}
+											else {
+												suc[preIndex] = 0;
+												break;
+											}
+											// �����һ���ַ���'\0'�������ƥ��ɹ�
+											if (pre[preIndex * 100 + preJ] == '\0') {
+												suc[preIndex] = 1;
+												break;
+											}
+										}
+									}
+									// ����Ѿ��ɹ��ˣ��Ͳ��ü���ƥ����
+									if (suc[preIndex] == 1) {
+										break;
+									}
+
+									courseIndex = courseIndex + 1;
+								}
+
+
+								preIndex = preIndex + 1;
+							}
+							// ���ǰ�ÿγ��Ƿ�ȫ��ƥ��ɹ�
+							preIndex = 0;
+							while (preIndex < num) {
+								// һ����һ��ƥ��ʧ�ܣ��Ͳ����Ƽ�
+								if (suc[preIndex] == 0) {
+									temp = 0;
+								}
+
+								preIndex = preIndex + 1;
+							}
+							// ���ȫ����ture��������Ƽ���������γ���
+							if (temp == 1) {
+								printf("  ");
+								j = 0;
+								while (1) {
+									if (info[index * 1000 + j] != '|') {
+										printf("%c", info[index * 1000 + j]);
+									}
+									else {
+										print("");
+										break;
+									}
+									j = j + 1;
+								}
+								break;
+							}
+							else {
+								break;
+							}
+						}
+						j = j + 1;
+					}
+					// ���preCourses��һ���ַ���'\0'��������ѭ�����ÿγ̲��Ƽ�
+					if (preCourses[index * 1000 + j] == '\0') {
+						break;
+					}
+					// ���������ȡ��һ���ַ�
+					else {
+						j = j + 1;
+					}
+					// ���temp����ʱ��true�������Ѿ��Ƽ����ˣ������ٴ��Ƽ�
+					if (temp == 1) {
+						break;
+					}
+				}
+			}
+
+		}
+		else {
+			passNum = passNum + 1;
+		}
+
+		index = index + 1;
+	}
+
+	if (passNum == i) {
+		printf("  None - Congratulations!");
+		print("");
+	}
+
+	return 0;
+}
+
+
