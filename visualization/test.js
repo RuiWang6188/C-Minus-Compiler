@@ -1,6 +1,6 @@
 
-var width = 1000,
-    height = 1000;
+var width = 1500,
+    height = 1500;
 
 //定义数据转换函数
 var tree = d3.layout.tree()
@@ -30,7 +30,7 @@ d3.json("ast_tree.json",function(erro,root){
         .attr("transform",function(d){return "translate("+ d.y+","+ d.x+")"});
     //加圈圈
     node.append("circle")
-        .attr("r",4.5);
+        .attr("r",1.0);
     //加文字
     node.append("text")
         .attr("dx",function(d){return d.children?-8:8;})
